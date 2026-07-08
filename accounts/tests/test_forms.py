@@ -1,4 +1,4 @@
-from django.contrib.auth.models import get_user_model
+from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 
 User = get_user_model()
