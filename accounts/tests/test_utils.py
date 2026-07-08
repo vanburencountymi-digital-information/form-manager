@@ -1,5 +1,5 @@
 from django.test import SimpleTestCase
-from accounts.validators import parse_domain_allowlist
+from accounts.utils import parse_domain_allowlist
 
 class ParseDomainAllowlistTests(SimpleTestCase):
     def test_single_domain(self):

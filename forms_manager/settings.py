@@ -14,7 +14,7 @@ import json
 from decouple import config
 from pathlib import Path
 
-from accounts.validators import parse_domain_allowlist
+from accounts.utils import parse_domain_allowlist
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
