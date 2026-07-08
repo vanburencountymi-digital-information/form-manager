@@ -34,4 +34,3 @@ class ParseDomainAllowlistTests(SimpleTestCase):
             parse_domain_allowlist("example.com,,foo.com"),
             ["example.com", "foo.com"],
         )
-
