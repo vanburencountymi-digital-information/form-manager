@@ -1,9 +1,10 @@
-from django.test import SimpleTestCase, override_settings
+from django.contrib.auth.models import User
+from django.test import TestCase, override_settings
 
 from accounts.forms import InviteUserForm
 
 @override_settings(USER_EMAIL_DOMAINS=["example.com", "foo.com"])
-class InviteUserFormTests(SimpleTestCase):
+class InviteUserFormTests(TestCase):
 
     def _assemble_form(self, email: str = ""):
         data = {
@@ -43,4 +44,18 @@ class InviteUserFormTests(SimpleTestCase):
     def test_empty_allowlist_rejects_every_domain(self):
         form = self._assemble_form(email="jane@example.com")
         self.assertFalse(form.is_valid())
+
+    def test_invalid_when_email_already_exists_case_insensitive(self):
+        User.objects.create_user(username="jane", email="jane@Example.com")
+        form = self._assemble_form(email="Jane@example.com")
+        self.assertFalse(form.is_valid())
         self.assertIn("email", form.errors)
+        self.assertEqual(
+            form.errors["email"], ["This email address already exists."]
+        )
+
+    def test_valid_when_email_does_not_already_exist(self):
+        User.objects.create_user(username="someone_else", email="someone@example.com")
+        form = self._assemble_form(email="jane@example.com")
+        self.assertTrue(form.is_valid(), form.errors)
+
