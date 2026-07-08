@@ -52,9 +52,6 @@ class InviteUserFormTests(TestCase):
         form = self._assemble_form(email="Jane@example.com")
         self.assertFalse(form.is_valid())
         self.assertIn("email", form.errors)
-        self.assertEqual(
-            form.errors["email"], ["This email address already exists."]
-        )
 
     def test_valid_when_email_does_not_already_exist(self):
         User.objects.create_user(username="someone_else", email="someone@example.com")

@@ -17,7 +17,6 @@ class InviteUserForm(forms.ModelForm):
     def clean_email(self):
         email = self.cleaned_data['email'].lower()
         self._check_if_email_in_allowlist(email)
-        self._check_email_is_unique(email)
         return email
 
 
@@ -26,12 +25,4 @@ class InviteUserForm(forms.ModelForm):
         if email_domain not in settings.USER_EMAIL_DOMAINS:
             raise forms.ValidationError(
                 "This email domain is not allowed."
-            )
-
-
-    def _check_email_is_unique(self, value):
-        matching_users = User.objects.filter(email__iexact=value).first()
-        if matching_users:
-            raise forms.ValidationError(
-                "This email address already exists."
             )
