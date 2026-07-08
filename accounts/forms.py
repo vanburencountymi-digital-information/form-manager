@@ -7,7 +7,7 @@ User = get_user_model()
 class InviteUserForm(forms.ModelForm):
     """Custom form for inviting users."""
 
-    email = forms.EmailField(required=True)
+    email = forms.EmailField(required=True, max_length=150)
 
     class Meta:
         model = User

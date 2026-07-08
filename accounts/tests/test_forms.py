@@ -58,3 +58,16 @@ class InviteUserFormTests(TestCase):
         form = self._assemble_form(email="jane@example.com")
         self.assertTrue(form.is_valid(), form.errors)
 
+    def test_email_at_150_characters_is_accepted(self):
+        email = ("a" * 138) + "@example.com"  # exactly 150 characters
+        self.assertEqual(len(email), 150)
+        form = self._assemble_form(email=email)
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_email_over_150_characters_is_rejected(self):
+        email = ("a" * 139) + "@example.com"  # exactly 151 characters
+        self.assertEqual(len(email), 151)
+        form = self._assemble_form(email=email)
+        self.assertFalse(form.is_valid())
+        self.assertIn("email", form.errors)
+

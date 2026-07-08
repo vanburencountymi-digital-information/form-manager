@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 
@@ -15,3 +16,17 @@ class UserSaveTests(TestCase):
         with self.assertRaises(IntegrityError):
             with transaction.atomic():
                 User.objects.create_user(username="jane2", email="jane@example.com")
+
+    def test_email_at_150_characters_passes_full_clean(self):
+        email = ("a" * 138) + "@example.com"  # exactly 150 characters
+        self.assertEqual(len(email), 150)
+        user = User(username="jane", email=email)
+        user.full_clean()
+
+    def test_email_over_150_characters_fails_full_clean(self):
+        email = ("a" * 139) + "@example.com"  # exactly 151 characters
+        self.assertEqual(len(email), 151)
+        user = User(username="jane", email=email)
+        with self.assertRaises(ValidationError) as ctx:
+            user.full_clean()
+        self.assertIn("email", ctx.exception.message_dict)
