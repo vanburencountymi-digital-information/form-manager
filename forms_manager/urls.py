@@ -15,10 +15,22 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from django.conf import settings
+from django.conf.urls.static import static
 from django.urls import include, path, re_path
+from core.views import landing_internal
 
 urlpatterns = [
+    path("", landing_internal, name="landing_internal"),
     path('admin/', admin.site.urls),
     re_path(r'^_nested_admin/', include('nested_admin.urls')),
     path('forms/', include('django_forms_workflows.urls')),
+    path("accounts/", include("django.contrib.auth.urls")),
+    path("api/", include("django_forms_workflows.api_urls")),
 ]
+
+# Serve media files in development
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+

@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
+import json 
 
 from decouple import config
 from pathlib import Path
@@ -27,6 +28,7 @@ SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+USER_EMAIL_DOMAINS = config("USER_EMAIL_DOMAINS", default="", cast=json.loads)
 
 
 # Application definition
@@ -43,6 +45,9 @@ INSTALLED_APPS = [
     'crispy_forms',
     'crispy_bootstrap5',
     'django_forms_workflows',
+    # non package
+    'accounts',
+    'core',
 ]
 
 MIDDLEWARE = [
