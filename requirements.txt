@@ -9,12 +9,14 @@ click-didyoumean==0.3.1
 click-plugins==1.1.1.2
 click-repl==0.3.0
 crispy-bootstrap5==2026.3
-Django==5.2.15
+Django==6.0.5
 django-countries==9.0.0
 django-crispy-forms==2.6
 django-forms-workflows==0.76.0
+django-guardian==3.3.2
 django-localflavor==5.0
 django-nested-admin==4.1.6
+django-treebeard==5.3.0
 idna==3.18
 kombu==5.6.2
 packaging==26.2
