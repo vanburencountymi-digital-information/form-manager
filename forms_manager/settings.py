@@ -14,6 +14,8 @@ import json
 from decouple import config
 from pathlib import Path
 
+from accounts.validators import parse_domain_allowlist
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -28,7 +30,7 @@ SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
-USER_EMAIL_DOMAINS = config("USER_EMAIL_DOMAINS", default="", cast=json.loads)
+USER_EMAIL_DOMAINS = config("USER_EMAIL_DOMAINS", default="", cast=parse_domain_allowlist)
 
 
 # Application definition
