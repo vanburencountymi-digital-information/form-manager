@@ -1,5 +1,7 @@
-from django.contrib.auth.models import User
+from django.contrib.auth.models import get_user_model
 from django.test import TestCase, override_settings
+
+User = get_user_model()
 
 from accounts.forms import InviteUserForm
 
