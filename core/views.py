@@ -141,4 +141,4 @@ def landing_internal(request):
             "api_token": None,
             "stats": {"forms": 0, "submissions": 0, "workflow_forms": 0},
         }
-    return render(request, "index.html", context)
+    return render(request, "core/index.html", context)

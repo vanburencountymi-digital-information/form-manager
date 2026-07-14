@@ -41,10 +41,6 @@ if DEBUG:
 # Application definition
 
 INSTALLED_APPS = [
-    # Listed before django.contrib.admin so our registration/*.html
-    # templates (login, password reset) take precedence over admin's
-    # own built-in copies of the same template names.
-    'accounts',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -58,6 +54,7 @@ INSTALLED_APPS = [
     'django_forms_workflows',
     'treebeard',
     # non package
+    'accounts',
     'core',
     'departments',
     'permissions',
@@ -79,7 +76,12 @@ ROOT_URLCONF = 'forms_manager.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        # Checked before each app's own templates/ dir (APP_DIRS below),
+        # regardless of INSTALLED_APPS order — this is what lets our
+        # registration/*.html and django_forms_workflows/base.html here
+        # override the same-named templates shipped by django.contrib.admin
+        # and django_forms_workflows.
+        'DIRS': [BASE_DIR / 'core' / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
