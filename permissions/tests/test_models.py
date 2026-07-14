@@ -104,9 +104,7 @@ class AdministratorPermissionsIsAdministratorTests(TestCase):
         self.assertFalse(AdministratorPermissions.is_administrator(user))
 
     def test_true_for_user_in_administrator_group(self):
-        user = UserFactory()
-        group = AdministratorPermissions.get_or_create_group()
-        user.groups.add(group)
+        user = UserFactory(is_administrator=True)
         self.assertTrue(AdministratorPermissions.is_administrator(user))
 
     def test_creates_the_group_as_a_side_effect_even_if_it_did_not_exist(self):
@@ -118,3 +116,8 @@ class AdministratorPermissionsIsAdministratorTests(TestCase):
         self.assertTrue(
             Group.objects.filter(name=AdministratorPermissions.GROUP_NAME).exists()
         )
+
+class AdministratorPermissionsNotInAdminTests(TestCase):
+    def test_administrator_permissions_is_not_registered_in_admin(self):
+        from django.contrib import admin
+        self.assertNotIn(AdministratorPermissions, admin.site._registry)
