@@ -34,10 +34,17 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 USER_EMAIL_DOMAINS = config("USER_EMAIL_DOMAINS", default="", cast=parse_domain_allowlist)
 
+if DEBUG:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
 
 # Application definition
 
 INSTALLED_APPS = [
+    # Listed before django.contrib.admin so our registration/*.html
+    # templates (login, password reset) take precedence over admin's
+    # own built-in copies of the same template names.
+    'accounts',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -51,7 +58,6 @@ INSTALLED_APPS = [
     'django_forms_workflows',
     'treebeard',
     # non package
-    'accounts',
     'core',
     'departments',
     'permissions',
