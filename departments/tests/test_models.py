@@ -78,6 +78,8 @@ class DepartmentTests(TestCase):
         self.assertEqual(dept.owners.count(), 2)
         self.assertIn(alice, dept.owners.all())
         self.assertIn(bob, dept.owners.all())
+        self.assertIn(dept.group, alice.groups.all())
+        self.assertIn(dept.group, bob.groups.all())
 
     def test_str_returns_name(self):
         dept = DepartmentFactory(name="Engineering")
@@ -95,6 +97,33 @@ class DepartmentTests(TestCase):
         dept.add_member(user)
         dept.remove_member(user)
         self.assertNotIn(dept.group, user.groups.all())
+
+    def test_add_user_to_owners_adds_user_to_the_departments_owners(self):
+        dept = DepartmentFactory(name="Engineering")
+        user = UserFactory()
+        dept.add_user_to_owners(user)
+        self.assertIn(user, dept.owners.all())
+
+    def test_remove_user_from_owners_removes_user_from_the_departments_owners(self):
+        dept = DepartmentFactory(name="Engineering")
+        user = UserFactory()
+        dept.add_user_to_owners(user)
+        dept.remove_user_from_owners(user)
+        self.assertNotIn(user, dept.owners.all())
+
+    def test_add_user_to_owners_does_not_also_add_membership(self):
+        dept = DepartmentFactory(name="Engineering")
+        user = UserFactory()
+        dept.add_user_to_owners(user)
+        self.assertNotIn(dept.group, user.groups.all())
+
+    def test_remove_user_from_owners_does_not_affect_membership(self):
+        dept = DepartmentFactory(name="Engineering")
+        user = UserFactory()
+        dept.add_member(user)
+        dept.add_user_to_owners(user)
+        dept.remove_user_from_owners(user)
+        self.assertIn(dept.group, user.groups.all())
 
     def test_get_departments_owned_by_user_includes_directly_owned_departments(self):
         dept = DepartmentFactory(name="Engineering")

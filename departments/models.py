@@ -51,6 +51,12 @@ class Department(MP_Node):
     def remove_member(self, user):
         self.group.user_set.remove(user)
 
+    def add_user_to_owners(self, user):
+        self.owners.add(user)
+
+    def remove_user_from_owners(self, user):
+        self.owners.remove(user)
+
     @classmethod
     def get_departments_owned_by_user(cls, user):
         """Departments this user directly owns, plus every descendant of
