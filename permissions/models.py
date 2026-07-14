@@ -1,11 +1,68 @@
+from enum import StrEnum
+
+from django.contrib.auth.models import Group, Permission
 from django.db import models
 
-class FormPermissions(models.Model):
+
+class AdministratorPermission(StrEnum):
+    """Canonical definition of each codename, referenced by both
+    AdministratorPermissions.Meta.permissions and PERMISSION_CODENAMES."""
+
+    CAN_INVITE_TO_ANY_DEPARTMENT = "can_invite_to_any_department"
+    CAN_EDIT_ANY_FORM = "can_edit_any_form"
+
+
+class AdministratorPermissions(models.Model):
+    """A semi-abstract model (no rows created) to provide a single 
+    home for admin related permissions."""
+
+    # Don't register in Admin; Roles are managed via Groups
+
+    GROUP_NAME = "Administrator"
+    PERMISSION_CODENAMES = [permission.value for permission in AdministratorPermission]
+
     class Meta:
         permissions = [
-            ("can_edit_any_form", "Can edit any form, bypassing department scoping"),
+            (
+                AdministratorPermission.CAN_INVITE_TO_ANY_DEPARTMENT,
+                "Can invite users to any department",
+            ),
+            (
+                AdministratorPermission.CAN_EDIT_ANY_FORM,
+                "Can edit any form, bypassing department-level form scoping.",
+            ),
         ]
 
+    @classmethod
+    def sync_permissions(cls):
+        """Sets the Administrator group's permissions, creating the group first 
+        if it doesn't."""
+        group, _ = Group.objects.get_or_create(name=cls.GROUP_NAME)
+        group.permissions.set(
+            Permission.objects.filter(codename__in=cls.PERMISSION_CODENAMES)
+        )
+        return group
+
+    @classmethod
+    def get_or_create_group(cls):
+        """Ensures the Administrator group exists and syncs permissions 
+        on creation."""
+        group, created = Group.objects.get_or_create(name=cls.GROUP_NAME)
+        if created:
+            cls.sync_permissions()
+        return group
+
+    @classmethod
+    def is_administrator(cls, user):
+        """Checks if user belongs to the Administrator group."""
+        group = cls.get_or_create_group()
+        return user.groups.filter(pk=group.pk).exists()
+
+
+class FormPermissions(models.Model):
+    """Sets FormDefinition permissions.
+    `editor_departments`: Who can edit the form schema.
+    `viewer_departments`: Who can view for the form submissions."""
     form = models.OneToOneField(
         "django_forms_workflows.FormDefinition", on_delete=models.CASCADE, related_name="permissions"
     )

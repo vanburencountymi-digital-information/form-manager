@@ -23,11 +23,6 @@ class Department(MP_Node):
 
     node_order_by = ["name"]
 
-    class Meta:
-        permissions = [
-            ("can_invite_to_any_department", "Can invite users to any department"),
-        ]
-
     def __str__(self):
         return self.name
 
