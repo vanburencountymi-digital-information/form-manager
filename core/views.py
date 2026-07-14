@@ -2,6 +2,7 @@ from django.shortcuts import render
 
 # Create your views here.
 from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
 from django.db.utils import OperationalError, ProgrammingError
 from django.shortcuts import render
 from django.urls import reverse
@@ -59,6 +60,7 @@ SHOWCASE_FORMS = {
 }
 
 
+@login_required
 def landing_internal(request):
     try:
         forms = {

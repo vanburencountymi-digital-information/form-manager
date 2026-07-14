@@ -28,6 +28,10 @@ SECRET_KEY = config('SECRET_KEY')
 
 AUTH_USER_MODEL = "accounts.User"
 
+# Where LoginView sends users after a successful login with no ?next= —
+# defaults to /accounts/profile/, which doesn't exist in this project.
+LOGIN_REDIRECT_URL = "/"
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
