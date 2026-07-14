@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from enum import StrEnum
 
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 from django.db import models
 
@@ -53,10 +56,12 @@ class AdministratorPermissions(models.Model):
         return group
 
     @classmethod
-    def is_administrator(cls, user):
-        """Checks if user belongs to the Administrator group."""
-        group = cls.get_or_create_group()
-        return user.groups.filter(pk=group.pk).exists()
+    def is_administrator(cls, user: get_user_model() = None):
+        """Checks if user belongs to the Administrator group. Returns `False` if no user."""
+        if user:
+            group = cls.get_or_create_group()
+            return user.groups.filter(pk=group.pk).exists()
+        return False
 
 
 class FormPermissions(models.Model):

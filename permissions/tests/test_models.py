@@ -117,6 +117,10 @@ class AdministratorPermissionsIsAdministratorTests(TestCase):
             Group.objects.filter(name=AdministratorPermissions.GROUP_NAME).exists()
         )
 
+    def test_false_for_none_user(self):
+        self.assertFalse(AdministratorPermissions.is_administrator(None))
+
+
 class AdministratorPermissionsNotInAdminTests(TestCase):
     def test_administrator_permissions_is_not_registered_in_admin(self):
         from django.contrib import admin
