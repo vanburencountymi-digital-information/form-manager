@@ -1,7 +1,7 @@
 from django.test import TestCase
 
-from accounts.factories import UserFactory
-from departments.factories import DepartmentFactory
+from accounts.tests.factories import UserFactory
+from departments.tests.factories import DepartmentFactory
 from departments.models import Department, DepartmentHasChildrenError
 
 
@@ -15,6 +15,38 @@ class DepartmentTests(TestCase):
         eng = DepartmentFactory(name="Engineering")
         sales = DepartmentFactory(name="Sales")
         self.assertNotEqual(eng.group_id, sales.group_id)
+
+    def test_group_name_property_reflects_current_name(self):
+        dept = DepartmentFactory(name="Engineering")
+        self.assertEqual(dept.group_name, "dept-Engineering")
+        dept.name = "Platform Engineering"
+        self.assertEqual(dept.group_name, "dept-Platform Engineering")
+
+    def test_sync_group_name_corrects_a_drifted_group_name(self):
+        dept = DepartmentFactory(name="Engineering")
+        dept.group.name = "some-other-name"
+        dept.group.save()
+        dept.sync_group_name()
+        self.assertEqual(dept.group.name, "dept-Engineering")
+
+    def test_sync_group_name_is_a_noop_when_already_correct(self):
+        dept = DepartmentFactory(name="Engineering")
+        dept.sync_group_name()
+        self.assertEqual(dept.group.name, "dept-Engineering")
+
+    def test_sync_group_name_creates_a_group_if_none_exists(self):
+        dept = Department(name="Engineering")
+        self.assertIsNone(dept.group_id)
+        dept.sync_group_name()
+        self.assertIsNotNone(dept.group_id)
+        self.assertEqual(dept.group.name, "dept-Engineering")
+
+    def test_renaming_a_department_and_saving_syncs_its_group_name(self):
+        dept = DepartmentFactory(name="Engineering")
+        dept.name = "Platform Engineering"
+        dept.save()
+        dept.refresh_from_db()
+        self.assertEqual(dept.group.name, "dept-Platform Engineering")
 
     def test_root_department_has_no_parent(self):
         dept = DepartmentFactory(name="Engineering")
@@ -68,7 +100,7 @@ class DepartmentTests(TestCase):
         parent = DepartmentFactory(name="Engineering")
         other_root = DepartmentFactory(name="Sales")
         child = DepartmentFactory(name="Backend", parent=parent)
-        child.move(other_root, pos="last-child")
+        child.move(other_root, pos="sorted-child")
         parent.archive()
         parent.refresh_from_db()
         self.assertTrue(parent.is_archived)

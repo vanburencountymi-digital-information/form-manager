@@ -1,6 +1,6 @@
 import factory
 
-from accounts.factories import UserFactory
+from accounts.tests.factories import UserFactory
 from departments.models import Department
 
 
@@ -11,7 +11,6 @@ class DepartmentFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Department
 
-    # Create department names with auto-incrementing numbers, e.g., Department 0, Department 1
     name = factory.Sequence(lambda n: f"Department {n}")
     parent = None
 

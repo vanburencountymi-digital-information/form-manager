@@ -1,7 +1,10 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.test import TestCase
+
+from accounts.tests.factories import UserFactory
 
 User = get_user_model()
 
@@ -33,3 +36,26 @@ class UserSaveTests(TestCase):
         with self.assertRaises(ValidationError) as ctx:
             user.full_clean()
         self.assertIn("email", ctx.exception.message_dict)
+
+
+class GetOrCreatePersonalGroupTests(TestCase):
+    def test_no_personal_group_exists_before_it_is_called(self):
+        user = UserFactory()
+        self.assertFalse(Group.objects.filter(name=f"user-{user.pk}").exists())
+
+    def test_creates_a_group_named_after_the_users_pk(self):
+        user = UserFactory()
+        group = user.get_or_create_personal_group()
+        self.assertEqual(group.name, f"user-{user.pk}")
+
+    def test_adds_the_user_to_the_group(self):
+        user = UserFactory()
+        group = user.get_or_create_personal_group()
+        self.assertIn(group, user.groups.all())
+
+    def test_calling_it_again_returns_the_same_group(self):
+        user = UserFactory()
+        first = user.get_or_create_personal_group()
+        second = user.get_or_create_personal_group()
+        self.assertEqual(first.pk, second.pk)
+        self.assertEqual(Group.objects.filter(name=f"user-{user.pk}").count(), 1)

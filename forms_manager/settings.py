@@ -53,7 +53,9 @@ INSTALLED_APPS = [
     # non package
     'accounts',
     'core',
-    "departments"
+    'departments',
+    'permissions',
+
 ]
 
 MIDDLEWARE = [

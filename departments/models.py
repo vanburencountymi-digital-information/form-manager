@@ -26,13 +26,23 @@ class Department(MP_Node):
     def __str__(self):
         return self.name
 
-    def save(self, *args, **kwargs):
-        expected_group_name = f"dept-{self.name}"
+    @property
+    def group_name(self):
+        return f"dept-{self.name}"
+
+    def sync_group_name(self):
+        """Ensures this department has a Group whose name matches
+        group_name — creates the Group if one doesn't exist yet, or
+        updates and persists its name if it's drifted (e.g. after a
+        rename). Safe to call whether or not self.group exists."""
         if not self.group_id:
-            self.group = Group.objects.create(name=expected_group_name)
-        elif self.group.name != expected_group_name:
-            self.group.name = expected_group_name
+            self.group = Group.objects.create(name=self.group_name)
+        elif self.group.name != self.group_name:
+            self.group.name = self.group_name
             self.group.save()
+
+    def save(self, *args, **kwargs):
+        self.sync_group_name()
         super().save(*args, **kwargs)
 
     def archive(self):
