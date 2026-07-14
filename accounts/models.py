@@ -9,6 +9,7 @@ class User(AbstractUser):
         max_length=150,
         unique=True,
         validators=[EmailValidator()],
+        verbose_name="email",
         help_text="Your email address, used to sign in.",
     )
     
