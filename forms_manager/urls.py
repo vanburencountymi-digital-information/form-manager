@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import include, path, re_path
+from accounts.views import invite_user
 from core.views import landing_internal
 
 urlpatterns = [
@@ -25,6 +26,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     re_path(r'^_nested_admin/', include('nested_admin.urls')),
     path('forms/', include('django_forms_workflows.urls')),
+    path("accounts/invite/", invite_user, name="invite_user"),
     path("accounts/", include("django.contrib.auth.urls")),
     path("api/", include("django_forms_workflows.api_urls")),
 ]

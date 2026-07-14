@@ -45,6 +45,26 @@ class Department(MP_Node):
         self.sync_group_name()
         super().save(*args, **kwargs)
 
+    def add_member(self, user):
+        self.group.user_set.add(user)
+
+    def remove_member(self, user):
+        self.group.user_set.remove(user)
+
+    @classmethod
+    def get_departments_owned_by_user(cls, user):
+        """Departments this user directly owns, plus every descendant of
+        each — owning a department implies owning its sub-departments
+        too, consistent with how department scoping works everywhere
+        else in this project (e.g. FormPermissions flattening)."""
+        department_ids = set()
+        for department in user.owned_departments.all():
+            department_ids.add(department.pk)
+            department_ids.update(
+                department.get_descendants().values_list("pk", flat=True)
+            )
+        return cls.objects.filter(pk__in=department_ids)
+
     def archive(self):
         """Archives this department. Raises DepartmentHasChildrenError if it
         still has any child departments — move or archive them first."""

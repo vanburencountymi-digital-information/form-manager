@@ -83,6 +83,42 @@ class DepartmentTests(TestCase):
         dept = DepartmentFactory(name="Engineering")
         self.assertEqual(str(dept), "Engineering")
 
+    def test_add_member_adds_user_to_the_departments_group(self):
+        dept = DepartmentFactory(name="Engineering")
+        user = UserFactory()
+        dept.add_member(user)
+        self.assertIn(dept.group, user.groups.all())
+
+    def test_remove_member_removes_user_from_the_departments_group(self):
+        dept = DepartmentFactory(name="Engineering")
+        user = UserFactory()
+        dept.add_member(user)
+        dept.remove_member(user)
+        self.assertNotIn(dept.group, user.groups.all())
+
+    def test_get_departments_owned_by_user_includes_directly_owned_departments(self):
+        dept = DepartmentFactory(name="Engineering")
+        user = UserFactory()
+        dept.owners.add(user)
+        self.assertIn(dept, Department.get_departments_owned_by_user(user))
+
+    def test_get_departments_owned_by_user_includes_descendants_of_owned_departments(self):
+        parent = DepartmentFactory(name="Engineering")
+        child = DepartmentFactory(name="Backend", parent=parent)
+        grandchild = DepartmentFactory(name="Infra", parent=child)
+        user = UserFactory()
+        parent.owners.add(user)
+        owned = Department.get_departments_owned_by_user(user)
+        self.assertIn(child, owned)
+        self.assertIn(grandchild, owned)
+
+    def test_get_departments_owned_by_user_excludes_unrelated_departments(self):
+        parent = DepartmentFactory(name="Engineering")
+        unrelated = DepartmentFactory(name="Sales")
+        user = UserFactory()
+        parent.owners.add(user)
+        self.assertNotIn(unrelated, Department.get_departments_owned_by_user(user))
+
     def test_archive_marks_department_as_archived(self):
         dept = DepartmentFactory(name="Engineering")
         dept.archive()
