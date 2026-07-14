@@ -1,6 +1,11 @@
 from django.db import models
 
 class FormPermissions(models.Model):
+    class Meta:
+        permissions = [
+            ("can_edit_any_form", "Can edit any form, bypassing department scoping"),
+        ]
+
     form = models.OneToOneField(
         "django_forms_workflows.FormDefinition", on_delete=models.CASCADE, related_name="permissions"
     )
