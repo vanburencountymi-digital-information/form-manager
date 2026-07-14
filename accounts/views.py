@@ -15,6 +15,7 @@ def invite_user(request):
     if request.method == "POST":
         form = InviteUserForm(request.POST, user=user)
         if form.is_valid():
+            form.instance.set_unusable_password()
             new_user = form.save()
             if form.cleaned_data.get("department"):
                 form.cleaned_data["department"].add_member(new_user)

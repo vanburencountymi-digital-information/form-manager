@@ -55,6 +55,15 @@ class InviteUserViewTests(TestCase):
         new_user = User.objects.get(email="jane@example.com")
         self.assertIn(self.department.group, new_user.groups.all())
 
+    def test_invited_user_has_an_unusable_password(self):
+        # Invited users have never set a password — the reset flow
+        # doubles as account activation, but only if this is set
+        # correctly (an empty password field would be falsely "usable").
+        self.client.force_login(self.owner)
+        self.client.post(self.url, self._post_data())
+        new_user = User.objects.get(email="jane@example.com")
+        self.assertFalse(new_user.has_usable_password())
+
     def test_owner_post_with_no_department_creates_user_with_no_group(self):
         self.client.force_login(self.owner)
         self.client.post(self.url, self._post_data(department=""))

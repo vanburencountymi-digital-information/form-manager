@@ -1,5 +1,6 @@
 from __future__ import annotations
 from django.contrib.auth import get_user_model
+from django.contrib.auth.forms import PasswordResetForm, _unicode_ci_compare
 from django import forms
 from django.conf import settings
 
@@ -7,6 +8,34 @@ from departments.models import Department
 from permissions.models import AdministratorPermissions
 
 User = get_user_model()
+
+
+class ActivationAwarePasswordResetForm(PasswordResetForm):
+    """Identical to PasswordResetForm, except it doesn't exclude users with
+    an unusable password. Invited users start out with an unusable password
+    (see InviteUserForm) and rely on the password reset flow to set their
+    first one, so for us "reset password" doubles as "activate account" —
+    the built-in has_usable_password() filter would silently refuse to
+    email them.
+
+    CAUTION: django_forms_workflows's SSO login (sso_views.py) also gives
+    users an unusable password — deliberately, since SSO-only accounts
+    should never get a local one. That code path is unreachable today
+    (gated behind the social_django package, which isn't installed here),
+    so this is safe for now. If SSO is ever enabled, this form needs a way
+    to tell "invited, not yet activated" and "SSO-only" apart before it can
+    keep allowing both through."""
+
+    def get_users(self, email):
+        email_field_name = User.get_email_field_name()
+        active_users = User._default_manager.filter(
+            **{f"{email_field_name}__iexact": email, "is_active": True}
+        )
+        return (
+            u
+            for u in active_users
+            if _unicode_ci_compare(email, getattr(u, email_field_name))
+        )
 
 class InviteUserForm(forms.ModelForm):
     """Custom form for inviting users."""

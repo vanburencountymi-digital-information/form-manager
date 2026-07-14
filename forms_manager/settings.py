@@ -35,7 +35,10 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 USER_EMAIL_DOMAINS = config("USER_EMAIL_DOMAINS", default="", cast=parse_domain_allowlist)
 
 if DEBUG:
-    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+    # Prints the decoded body rather than raw MIME — the raw source
+    # quoted-printable-wraps long lines (e.g. password reset links), which
+    # corrupts them when copy-pasted for manual testing.
+    EMAIL_BACKEND = "core.email_backends.ReadableConsoleEmailBackend"
 
 
 # Application definition
