@@ -5,7 +5,7 @@ from django import forms
 from django.conf import settings
 
 from departments.models import Department
-from permissions.models import AdministratorPermissions
+from permissions.checks import is_administrator
 
 User = get_user_model()
 
@@ -75,9 +75,9 @@ class InviteUserForm(forms.ModelForm):
 
     def get_department_field_queryset(self, requesting_user: get_user_model() = None):
         """Filters the Department queryset based on the requesting user's permissions."""
-        if not requesting_user:
+        if not requesting_user or not requesting_user.is_authenticated:
             return Department.objects.none()
-        if AdministratorPermissions.is_administrator(requesting_user):
+        if is_administrator(requesting_user):
             return Department.objects.filter(is_archived=False)
         return Department.get_departments_owned_by_user(requesting_user).filter(is_archived=False)
 
@@ -85,5 +85,5 @@ class InviteUserForm(forms.ModelForm):
         """Removes is_administrator field from form_data if the requesting user is not
         an administrator. Prevents POST hijacking."""
 
-        if not AdministratorPermissions.is_administrator(requesting_user):
+        if not is_administrator(requesting_user):
             self.fields.pop("is_administrator", None)

@@ -96,6 +96,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'django_forms_workflows.context_processors.forms_workflows',
+                'permissions.context_processors.user_roles',
             ],
         },
     },

@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AnonymousUser
 from django.test import TestCase, override_settings
 
 from accounts.forms import InviteUserForm
@@ -130,6 +131,10 @@ class GetDepartmentFieldQuerysetTests(TestCase):
         result = self.form.get_department_field_queryset(None)
         self.assertEqual(list(result), [])
 
+    def test_returns_empty_queryset_for_anonymous_user(self):
+        result = self.form.get_department_field_queryset(AnonymousUser())
+        self.assertEqual(list(result), [])
+
     def test_returns_owned_departments_for_non_administrator(self):
         result = self.form.get_department_field_queryset(self.owner)
         self.assertIn(self.department, result)
@@ -184,6 +189,12 @@ class HandleIsAdministratorFieldTests(TestCase):
         admin_user = UserFactory(is_administrator=True)
         form = InviteUserForm(user=admin_user)
         form.handle_is_administrator_field(None)
+        self.assertNotIn("is_administrator", form.fields)
+
+    def test_removes_the_field_for_an_anonymous_user(self):
+        admin_user = UserFactory(is_administrator=True)
+        form = InviteUserForm(user=admin_user)
+        form.handle_is_administrator_field(AnonymousUser())
         self.assertNotIn("is_administrator", form.fields)
 
     def test_keeps_the_field_for_an_administrator(self):
