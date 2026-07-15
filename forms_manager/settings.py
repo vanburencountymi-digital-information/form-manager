@@ -59,13 +59,18 @@ INSTALLED_APPS = [
     'crispy_forms',
     'crispy_bootstrap5',
     'django_forms_workflows',
+    'guardian',
     'treebeard',
     # non package
     'accounts',
     'core',
     'departments',
     'permissions',
+]
 
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'guardian.backends.ObjectPermissionBackend',
 ]
 
 MIDDLEWARE = [
