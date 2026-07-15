@@ -3,7 +3,7 @@ from django.test import RequestFactory, TestCase
 
 from accounts.tests.factories import UserFactory
 from departments.tests.factories import DepartmentFactory
-from permissions.decorators import administrator_required, department_manager_required
+from permissions.decorators import administrator_required, admin_or_dept_owner_required
 
 
 class AdministratorRequiredTests(TestCase):
@@ -32,7 +32,7 @@ class DepartmentManagerRequiredTests(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
 
-        @department_manager_required
+        @admin_or_dept_owner_required
         def dummy_view(request):
             return "ok"
 

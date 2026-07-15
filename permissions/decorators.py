@@ -4,7 +4,6 @@ from django.core.exceptions import PermissionDenied
 
 from permissions.checks import is_administrator, is_department_owner
 
-
 def administrator_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
@@ -14,7 +13,7 @@ def administrator_required(view_func):
     return wrapper
 
 
-def department_manager_required(view_func):
+def admin_or_dept_owner_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         if not (is_administrator(request.user) or is_department_owner(request.user)):
