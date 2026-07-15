@@ -4,7 +4,7 @@ from core.tests.factories import FormDefinitionFactory
 from permissions.models import FormPermissions
 
 
-class FormPermissionsFactory(factory.django.DjangoModelFactory):
+class FormPermissionsFactory(factory.django.DjangoModelFactory[FormPermissions]):
     class Meta:
         model = FormPermissions
 

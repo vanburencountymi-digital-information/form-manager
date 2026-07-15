@@ -4,10 +4,12 @@ from accounts.tests.factories import UserFactory
 from departments.models import Department
 
 
-class DepartmentFactory(factory.django.DjangoModelFactory):
+class DepartmentFactory(factory.django.DjangoModelFactory[Department]):
     """Parameters:
-    `chain_depth` (int): create a chain of `chain_depth` child departments below this one.
-    `parent` (Department): create this department as a child of the passed-in Department.
+    `chain_depth` (int): create a chain of `chain_depth` child departments
+        below this one.
+    `parent` (Department): create this department as a child of the
+        passed-in Department.
     `with_user` (True or User): add a member (not owner) to the department —
         True auto-generates a User, or pass a specific User instance to use that one.
     `with_owner` (True or User): add an owner (and therefore also a member) to the

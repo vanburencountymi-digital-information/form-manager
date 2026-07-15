@@ -1,22 +1,38 @@
+from __future__ import annotations
+
 from functools import wraps
+from typing import TYPE_CHECKING
 
 from django.core.exceptions import PermissionDenied
 
 from permissions.checks import is_administrator, is_department_owner
 
-def administrator_required(view_func):
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from typing import Any
+
+    from django.http import HttpRequest, HttpResponse
+
+
+def administrator_required(
+    view_func: Callable[..., HttpResponse],
+) -> Callable[..., HttpResponse]:
     @wraps(view_func)
-    def wrapper(request, *args, **kwargs):
+    def wrapper(request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         if not is_administrator(request.user):
             raise PermissionDenied
         return view_func(request, *args, **kwargs)
+
     return wrapper
 
 
-def admin_or_dept_owner_required(view_func):
+def admin_or_dept_owner_required(
+    view_func: Callable[..., HttpResponse],
+) -> Callable[..., HttpResponse]:
     @wraps(view_func)
-    def wrapper(request, *args, **kwargs):
+    def wrapper(request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         if not (is_administrator(request.user) or is_department_owner(request.user)):
             raise PermissionDenied
         return view_func(request, *args, **kwargs)
+
     return wrapper

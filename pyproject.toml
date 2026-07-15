@@ -1,0 +1,50 @@
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+extend-exclude = ["*/migrations/*"]
+
+[tool.ruff.lint]
+# E/F = pycodestyle errors + pyflakes, I = import sorting, UP = pyupgrade,
+# B = bugbear, SIM = simplify, C4 = comprehensions, DJ = Django-specific.
+select = ["E", "F", "I", "UP", "B", "SIM", "C4", "DJ"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+plugins = ["mypy_django_plugin.main"]
+python_version = "3.12"
+# tests/ excluded deliberately: test files self-verify at runtime (a real bug
+# fails the test immediately), and fighting factory_boy/fixtures for static
+# typing has low payoff there. Ruff still lints/formats test files as normal
+# — only mypy skips them. manage.py is Django's stock boilerplate entrypoint,
+# not worth annotating.
+exclude = ["migrations/", "tests/", "^manage\\.py$"]
+
+# Strict on our own code: every function we write needs annotations.
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+no_implicit_optional = true
+strict_equality = true
+# Deliberately NOT disallow_untyped_calls / strict=true — several core
+# dependencies (django_forms_workflows, guardian, treebeard, python-decouple)
+# ship no type stubs at all, so calls into them are necessarily Any.
+# Penalizing that would flag a dependency's choices, not ours. See the
+# override block below for the same boundary.
+
+[[tool.mypy.overrides]]
+module = [
+    "django_forms_workflows.*",
+    "guardian.*",
+    "treebeard.*",
+    "faker.*",
+    "decouple",
+    "nested_admin.*",
+]
+ignore_missing_imports = true
+
+[tool.django-stubs]
+django_settings_module = "forms_manager.settings"

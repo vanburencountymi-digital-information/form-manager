@@ -1,9 +1,8 @@
 import factory
-
 from django_forms_workflows.models import FormDefinition
 
 
-class FormDefinitionFactory(factory.django.DjangoModelFactory):
+class FormDefinitionFactory(factory.django.DjangoModelFactory[FormDefinition]):
     class Meta:
         model = FormDefinition
 

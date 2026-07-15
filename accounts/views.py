@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 
@@ -6,10 +10,13 @@ from permissions.models import AdministratorPermissions
 
 from .forms import InviteUserForm
 
+if TYPE_CHECKING:
+    from django.http import HttpRequest, HttpResponse
+
 
 @login_required
 @admin_or_dept_owner_required
-def invite_user(request):
+def invite_user(request: HttpRequest) -> HttpResponse:
     user = request.user
 
     if request.method == "POST":

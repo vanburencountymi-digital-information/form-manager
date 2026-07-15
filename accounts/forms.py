@@ -1,13 +1,24 @@
 from __future__ import annotations
-from django.contrib.auth import get_user_model
-from django.contrib.auth.forms import PasswordResetForm, _unicode_ci_compare
+
+from typing import TYPE_CHECKING, cast
+
 from django import forms
 from django.conf import settings
+from django.contrib.auth.forms import (  # type: ignore[attr-defined]
+    PasswordResetForm,
+    _unicode_ci_compare,
+)
 
+from accounts.models import User
 from departments.models import Department
 from permissions.checks import is_administrator
 
-User = get_user_model()
+if TYPE_CHECKING:
+    from collections.abc import Generator
+    from typing import Any
+
+    from django.contrib.auth.models import AnonymousUser
+    from django.db.models import QuerySet
 
 
 class ActivationAwarePasswordResetForm(PasswordResetForm):
@@ -26,7 +37,7 @@ class ActivationAwarePasswordResetForm(PasswordResetForm):
     to tell "invited, not yet activated" and "SSO-only" apart before it can
     keep allowing both through."""
 
-    def get_users(self, email):
+    def get_users(self, email: str) -> Generator[User, None, None]:
         email_field_name = User.get_email_field_name()
         active_users = User._default_manager.filter(
             **{f"{email_field_name}__iexact": email, "is_active": True}
@@ -37,6 +48,7 @@ class ActivationAwarePasswordResetForm(PasswordResetForm):
             if _unicode_ci_compare(email, getattr(u, email_field_name))
         )
 
+
 class InviteUserForm(forms.ModelForm):
     """Custom form for inviting users."""
 
@@ -44,7 +56,10 @@ class InviteUserForm(forms.ModelForm):
     department = forms.ModelChoiceField(
         queryset=Department.objects.none(),
         required=False,
-        help_text="Optional — leave blank to invite someone with no department membership yet (e.g. an approver-only account).",
+        help_text=(
+            "Optional — leave blank to invite someone with no department "
+            "membership yet (e.g. an approver-only account)."
+        ),
     )
     is_administrator = forms.BooleanField(
         required=False, label="Grant administrator access"
@@ -52,36 +67,46 @@ class InviteUserForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ['email', "first_name", "last_name", "department"]
+        fields = ["email", "first_name", "last_name", "department"]
 
-    def __init__(self, *args, user=None, **kwargs):
+    def __init__(
+        self,
+        *args: Any,
+        user: User | AnonymousUser | None = None,
+        **kwargs: Any,
+    ) -> None:
         super().__init__(*args, **kwargs)
-        
-        self.fields["department"].queryset = self.get_department_field_queryset(user)
+
+        department_field = cast(forms.ModelChoiceField, self.fields["department"])
+        department_field.queryset = self.get_department_field_queryset(user)
         self.handle_is_administrator_field(user)
 
-    def clean_email(self):
-        email = self.cleaned_data['email'].lower()
+    def clean_email(self) -> str:
+        email = self.cleaned_data["email"].lower()
         self._check_if_email_in_allowlist(email)
         return email
 
-
-    def _check_if_email_in_allowlist(self, value):
+    def _check_if_email_in_allowlist(self, value: str) -> None:
         email_domain = value.split("@")[1]
         if email_domain not in settings.USER_EMAIL_DOMAINS:
-            raise forms.ValidationError(
-                "This email domain is not allowed."
-            )
+            raise forms.ValidationError("This email domain is not allowed.")
 
-    def get_department_field_queryset(self, requesting_user: get_user_model() = None):
-        """Filters the Department queryset based on the requesting user's permissions."""
+    def get_department_field_queryset(
+        self, requesting_user: User | AnonymousUser | None = None
+    ) -> QuerySet[Department]:
+        """Filters the Department queryset based on the requesting user's
+        permissions."""
         if not requesting_user or not requesting_user.is_authenticated:
             return Department.objects.none()
         if is_administrator(requesting_user):
             return Department.objects.filter(is_archived=False)
-        return Department.get_departments_owned_by_user(requesting_user).filter(is_archived=False)
+        return Department.get_departments_owned_by_user(requesting_user).filter(
+            is_archived=False
+        )
 
-    def handle_is_administrator_field(self, requesting_user: get_user_model() = None):
+    def handle_is_administrator_field(
+        self, requesting_user: User | AnonymousUser | None = None
+    ) -> None:
         """Removes is_administrator field from form_data if the requesting user is not
         an administrator. Prevents POST hijacking."""
 

@@ -1,63 +1,63 @@
 from django.test import TestCase
 
 from accounts.tests.factories import UserFactory
-from departments.tests.factories import DepartmentFactory
 from departments.models import Department, DepartmentHasChildrenError
+from departments.tests.factories import DepartmentFactory
 
 
 class DepartmentTests(TestCase):
-    def test_creating_root_department_auto_creates_a_group(self):
+    def test_creating_root_department_auto_creates_a_group(self) -> None:
         dept = DepartmentFactory(name="Engineering")
         self.assertIsNotNone(dept.group_id)
         self.assertEqual(dept.group.name, "dept-Engineering")
 
-    def test_each_department_gets_its_own_group(self):
+    def test_each_department_gets_its_own_group(self) -> None:
         eng = DepartmentFactory(name="Engineering")
         sales = DepartmentFactory(name="Sales")
         self.assertNotEqual(eng.group_id, sales.group_id)
 
-    def test_group_name_property_reflects_current_name(self):
+    def test_group_name_property_reflects_current_name(self) -> None:
         dept = DepartmentFactory(name="Engineering")
         self.assertEqual(dept.group_name, "dept-Engineering")
         dept.name = "Platform Engineering"
         self.assertEqual(dept.group_name, "dept-Platform Engineering")
 
-    def test_sync_group_name_corrects_a_drifted_group_name(self):
+    def test_sync_group_name_corrects_a_drifted_group_name(self) -> None:
         dept = DepartmentFactory(name="Engineering")
         dept.group.name = "some-other-name"
         dept.group.save()
         dept.sync_group_name()
         self.assertEqual(dept.group.name, "dept-Engineering")
 
-    def test_sync_group_name_is_a_noop_when_already_correct(self):
+    def test_sync_group_name_is_a_noop_when_already_correct(self) -> None:
         dept = DepartmentFactory(name="Engineering")
         dept.sync_group_name()
         self.assertEqual(dept.group.name, "dept-Engineering")
 
-    def test_sync_group_name_creates_a_group_if_none_exists(self):
+    def test_sync_group_name_creates_a_group_if_none_exists(self) -> None:
         dept = Department(name="Engineering")
         self.assertIsNone(dept.group_id)
         dept.sync_group_name()
         self.assertIsNotNone(dept.group_id)
         self.assertEqual(dept.group.name, "dept-Engineering")
 
-    def test_renaming_a_department_and_saving_syncs_its_group_name(self):
+    def test_renaming_a_department_and_saving_syncs_its_group_name(self) -> None:
         dept = DepartmentFactory(name="Engineering")
         dept.name = "Platform Engineering"
         dept.save()
         dept.refresh_from_db()
         self.assertEqual(dept.group.name, "dept-Platform Engineering")
 
-    def test_root_department_has_no_parent(self):
+    def test_root_department_has_no_parent(self) -> None:
         dept = DepartmentFactory(name="Engineering")
         self.assertIsNone(dept.get_parent())
 
-    def test_child_department_reports_its_parent(self):
+    def test_child_department_reports_its_parent(self) -> None:
         parent = DepartmentFactory(name="Engineering")
         child = DepartmentFactory(name="Backend", parent=parent)
         self.assertEqual(child.get_parent().pk, parent.pk)
 
-    def test_ancestors_include_full_parent_chain_root_first(self):
+    def test_ancestors_include_full_parent_chain_root_first(self) -> None:
         # Named explicitly rather than via chain_depth, since this test
         # asserts on the specific identity/order of each level, not just
         # that N levels exist.
@@ -67,11 +67,11 @@ class DepartmentTests(TestCase):
         ancestor_names = list(child.get_ancestors().values_list("name", flat=True))
         self.assertEqual(ancestor_names, ["Company", "Engineering"])
 
-    def test_department_can_be_created_with_no_owners(self):
+    def test_department_can_be_created_with_no_owners(self) -> None:
         dept = DepartmentFactory(name="Engineering")
         self.assertEqual(dept.owners.count(), 0)
 
-    def test_department_can_have_multiple_owners(self):
+    def test_department_can_have_multiple_owners(self) -> None:
         alice = UserFactory(email="alice@example.com")
         bob = UserFactory(email="bob@example.com")
         dept = DepartmentFactory(name="Engineering", owners=[alice, bob])
@@ -81,43 +81,45 @@ class DepartmentTests(TestCase):
         self.assertIn(dept.group, alice.groups.all())
         self.assertIn(dept.group, bob.groups.all())
 
-    def test_str_returns_name(self):
+    def test_str_returns_name(self) -> None:
         dept = DepartmentFactory(name="Engineering")
         self.assertEqual(str(dept), "Engineering")
 
-    def test_add_member_adds_user_to_the_departments_group(self):
+    def test_add_member_adds_user_to_the_departments_group(self) -> None:
         dept = DepartmentFactory(name="Engineering")
         user = UserFactory()
         dept.add_member(user)
         self.assertIn(dept.group, user.groups.all())
 
-    def test_remove_member_removes_user_from_the_departments_group(self):
+    def test_remove_member_removes_user_from_the_departments_group(self) -> None:
         dept = DepartmentFactory(name="Engineering")
         user = UserFactory()
         dept.add_member(user)
         dept.remove_member(user)
         self.assertNotIn(dept.group, user.groups.all())
 
-    def test_add_user_to_owners_adds_user_to_the_departments_owners(self):
+    def test_add_user_to_owners_adds_user_to_the_departments_owners(self) -> None:
         dept = DepartmentFactory(name="Engineering")
         user = UserFactory()
         dept.add_user_to_owners(user)
         self.assertIn(user, dept.owners.all())
 
-    def test_remove_user_from_owners_removes_user_from_the_departments_owners(self):
+    def test_remove_user_from_owners_removes_user_from_the_departments_owners(
+        self,
+    ) -> None:
         dept = DepartmentFactory(name="Engineering")
         user = UserFactory()
         dept.add_user_to_owners(user)
         dept.remove_user_from_owners(user)
         self.assertNotIn(user, dept.owners.all())
 
-    def test_add_user_to_owners_does_not_also_add_membership(self):
+    def test_add_user_to_owners_does_not_also_add_membership(self) -> None:
         dept = DepartmentFactory(name="Engineering")
         user = UserFactory()
         dept.add_user_to_owners(user)
         self.assertNotIn(dept.group, user.groups.all())
 
-    def test_remove_user_from_owners_does_not_affect_membership(self):
+    def test_remove_user_from_owners_does_not_affect_membership(self) -> None:
         dept = DepartmentFactory(name="Engineering")
         user = UserFactory()
         dept.add_member(user)
@@ -125,13 +127,17 @@ class DepartmentTests(TestCase):
         dept.remove_user_from_owners(user)
         self.assertIn(dept.group, user.groups.all())
 
-    def test_get_departments_owned_by_user_includes_directly_owned_departments(self):
+    def test_get_departments_owned_by_user_includes_directly_owned_departments(
+        self,
+    ) -> None:
         dept = DepartmentFactory(name="Engineering")
         user = UserFactory()
         dept.owners.add(user)
         self.assertIn(dept, Department.get_departments_owned_by_user(user))
 
-    def test_get_departments_owned_by_user_includes_descendants_of_owned_departments(self):
+    def test_get_departments_owned_by_user_includes_descendants_of_owned_departments(
+        self,
+    ) -> None:
         parent = DepartmentFactory(name="Engineering")
         child = DepartmentFactory(name="Backend", parent=parent)
         grandchild = DepartmentFactory(name="Infra", parent=child)
@@ -141,27 +147,27 @@ class DepartmentTests(TestCase):
         self.assertIn(child, owned)
         self.assertIn(grandchild, owned)
 
-    def test_get_departments_owned_by_user_excludes_unrelated_departments(self):
+    def test_get_departments_owned_by_user_excludes_unrelated_departments(self) -> None:
         parent = DepartmentFactory(name="Engineering")
         unrelated = DepartmentFactory(name="Sales")
         user = UserFactory()
         parent.owners.add(user)
         self.assertNotIn(unrelated, Department.get_departments_owned_by_user(user))
 
-    def test_archive_marks_department_as_archived(self):
+    def test_archive_marks_department_as_archived(self) -> None:
         dept = DepartmentFactory(name="Engineering")
         dept.archive()
         dept.refresh_from_db()
         self.assertTrue(dept.is_archived)
 
-    def test_archive_raises_if_department_has_children(self):
+    def test_archive_raises_if_department_has_children(self) -> None:
         parent = DepartmentFactory(name="Engineering", chain_depth=1)
         with self.assertRaises(DepartmentHasChildrenError):
             parent.archive()
         parent.refresh_from_db()
         self.assertFalse(parent.is_archived)
 
-    def test_archive_succeeds_after_children_are_moved_out(self):
+    def test_archive_succeeds_after_children_are_moved_out(self) -> None:
         parent = DepartmentFactory(name="Engineering")
         other_root = DepartmentFactory(name="Sales")
         child = DepartmentFactory(name="Backend", parent=parent)
@@ -170,12 +176,12 @@ class DepartmentTests(TestCase):
         parent.refresh_from_db()
         self.assertTrue(parent.is_archived)
 
-    def test_instance_delete_is_blocked(self):
+    def test_instance_delete_is_blocked(self) -> None:
         dept = DepartmentFactory(name="Engineering")
         with self.assertRaises(PermissionError):
             dept.delete()
 
-    def test_queryset_bulk_delete_is_also_blocked(self):
+    def test_queryset_bulk_delete_is_also_blocked(self) -> None:
         dept = DepartmentFactory(name="Engineering")
         with self.assertRaises(PermissionError):
             Department.objects.filter(pk=dept.pk).delete()

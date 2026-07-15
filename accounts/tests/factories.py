@@ -6,7 +6,7 @@ from permissions.models import AdministratorPermissions
 User = get_user_model()
 
 
-class UserFactory(factory.django.DjangoModelFactory):
+class UserFactory(factory.django.DjangoModelFactory[User]):
     """Pass in `is_administrator=True` to add AdministratorPermissions to user."""
 
     class Meta:

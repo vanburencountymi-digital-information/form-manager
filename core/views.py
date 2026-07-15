@@ -1,4 +1,6 @@
-from django.shortcuts import render
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 # Create your views here.
 from django.contrib.auth import get_user_model
@@ -6,8 +8,10 @@ from django.contrib.auth.decorators import login_required
 from django.db.utils import OperationalError, ProgrammingError
 from django.shortcuts import render
 from django.urls import reverse
-
 from django_forms_workflows.models import APIToken, FormDefinition, FormSubmission
+
+if TYPE_CHECKING:
+    from django.http import HttpRequest, HttpResponse
 
 DEMO_USERNAMES = [
     "farmer_brown",
@@ -61,7 +65,7 @@ SHOWCASE_FORMS = {
 
 
 @login_required
-def landing_internal(request):
+def landing_internal(request: HttpRequest) -> HttpResponse:
     try:
         forms = {
             form.slug: form

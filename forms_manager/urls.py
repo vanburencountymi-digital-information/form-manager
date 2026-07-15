@@ -14,12 +14,14 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.contrib import admin
-from django.contrib.auth import views as auth_views
+
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib import admin
+from django.contrib.auth import views as auth_views
 from django.urls import include, path, re_path
 from django.views.generic import RedirectView
+
 from accounts.forms import ActivationAwarePasswordResetForm
 from accounts.views import invite_user
 from core.views import landing_internal
@@ -34,9 +36,9 @@ urlpatterns = [
         RedirectView.as_view(pattern_name="password_reset"),
         name="admin_password_reset",
     ),
-    path('admin/', admin.site.urls),
-    re_path(r'^_nested_admin/', include('nested_admin.urls')),
-    path('forms/', include('django_forms_workflows.urls')),
+    path("admin/", admin.site.urls),
+    re_path(r"^_nested_admin/", include("nested_admin.urls")),
+    path("forms/", include("django_forms_workflows.urls")),
     path("accounts/invite/", invite_user, name="invite_user"),
     # Registered ahead of django.contrib.auth.urls below so this one wins —
     # swaps in a form that also emails invited users, who start out with an
@@ -56,5 +58,3 @@ urlpatterns = [
 # Serve media files in development
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
-

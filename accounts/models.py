@@ -1,9 +1,21 @@
+from typing import TYPE_CHECKING, Any
+
 from django.contrib.auth.models import AbstractUser, Group
 from django.core.validators import EmailValidator
 from django.db import models
 
+if TYPE_CHECKING:
+    from django.db.models.fields.related_descriptors import RelatedManager
+
+    from departments.models import Department
+
+
 class User(AbstractUser):
-    """Workaround implementation of email as username; preserves username field for package compatibility"""
+    """Workaround implementation of email as username; preserves username
+    field for package compatibility"""
+
+    if TYPE_CHECKING:
+        owned_departments: RelatedManager[Department]
 
     username = models.CharField(
         max_length=150,
@@ -12,15 +24,15 @@ class User(AbstractUser):
         verbose_name="email",
         help_text="Your email address, used to sign in.",
     )
-    
+
     email = models.EmailField(unique=True, blank=False, max_length=150)
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
         self.email = self.email.lower()
         self.username = self.email
         super().save(*args, **kwargs)
 
-    def get_or_create_personal_group(self):
+    def get_or_create_personal_group(self) -> Group:
         """Returns this user's personal Group, creating it (and adding this
         user to it) on first use. On demand only — nothing creates this
         automatically at signup. For granting individual, non-department
