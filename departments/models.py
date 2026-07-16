@@ -64,6 +64,9 @@ class Department(MP_Node):
     def remove_user_from_owners(self, user: User) -> None:
         self.owners.remove(user)
 
+    def check_if_owned_by_user(self, user: User) -> bool:
+        return user in self.owners.all()
+
     @classmethod
     def get_departments_owned_by_user(cls, user: User) -> models.QuerySet[Department]:
         """Departments this user directly owns, plus every descendant of

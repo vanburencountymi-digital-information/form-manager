@@ -127,6 +127,44 @@ class DepartmentTests(TestCase):
         dept.remove_user_from_owners(user)
         self.assertIn(dept.group, user.groups.all())
 
+    def test_check_if_owned_by_user_true_for_an_owner(self) -> None:
+        dept = DepartmentFactory(name="Engineering")
+        user = UserFactory()
+        dept.add_user_to_owners(user)
+        self.assertTrue(dept.check_if_owned_by_user(user))
+
+    def test_check_if_owned_by_user_false_for_a_non_owner(self) -> None:
+        dept = DepartmentFactory(name="Engineering")
+        user = UserFactory()
+        self.assertFalse(dept.check_if_owned_by_user(user))
+
+    def test_check_if_owned_by_user_false_for_a_plain_member(self) -> None:
+        # Membership alone (not ownership) shouldn't count.
+        dept = DepartmentFactory(name="Engineering")
+        user = UserFactory()
+        dept.add_member(user)
+        self.assertFalse(dept.check_if_owned_by_user(user))
+
+    def test_check_if_owned_by_user_false_for_owner_of_a_different_department(
+        self,
+    ) -> None:
+        dept = DepartmentFactory(name="Engineering")
+        other_dept = DepartmentFactory(name="Sales")
+        user = UserFactory()
+        other_dept.add_user_to_owners(user)
+        self.assertFalse(dept.check_if_owned_by_user(user))
+
+    def test_check_if_owned_by_user_false_for_owner_of_a_descendant_department(
+        self,
+    ) -> None:
+        # Unlike get_departments_owned_by_user, this checks direct ownership
+        # of this exact department only — owning a child doesn't count.
+        parent = DepartmentFactory(name="Engineering")
+        child = DepartmentFactory(name="Backend", parent=parent)
+        user = UserFactory()
+        child.add_user_to_owners(user)
+        self.assertFalse(parent.check_if_owned_by_user(user))
+
     def test_get_departments_owned_by_user_includes_directly_owned_departments(
         self,
     ) -> None:
