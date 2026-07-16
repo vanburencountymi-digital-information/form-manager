@@ -23,3 +23,15 @@ def is_a_department_owner(user: User | AnonymousUser | None) -> bool:
 def is_administrator(user: User | AnonymousUser | None) -> bool:
     """Utility method for AdministratorGroupService.is_administrator."""
     return AdministratorGroupService.is_administrator(user)
+
+
+def can_create_forms(user: User | AnonymousUser | None) -> bool:
+    """True if user can create at least one form somewhere"""
+    # TODO: update once there are department level permissions
+    return is_administrator(user) or is_a_department_owner(user)
+
+
+def can_edit_forms(user: User | AnonymousUser | None) -> bool:
+    """True if user can edit at least one form somewhere"""
+    # TODO: update once there are department level permissions
+    return is_administrator(user) or is_a_department_owner(user)

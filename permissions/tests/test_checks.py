@@ -39,3 +39,45 @@ class IsAdministratorTests(TestCase):
 
     def test_false_for_none(self) -> None:
         self.assertFalse(checks.is_administrator(None))
+
+
+class CanCreateFormsTests(TestCase):
+    def test_false_for_plain_user(self) -> None:
+        user = UserFactory()
+        self.assertFalse(checks.can_create_forms(user))
+
+    def test_true_for_department_owner(self) -> None:
+        user = UserFactory()
+        DepartmentFactory(name="Engineering").owners.add(user)
+        self.assertTrue(checks.can_create_forms(user))
+
+    def test_true_for_administrator_with_no_owned_departments(self) -> None:
+        user = UserFactory(is_administrator=True)
+        self.assertTrue(checks.can_create_forms(user))
+
+    def test_false_for_anonymous_user_does_not_raise(self) -> None:
+        self.assertFalse(checks.can_create_forms(AnonymousUser()))
+
+    def test_false_for_none(self) -> None:
+        self.assertFalse(checks.can_create_forms(None))
+
+
+class CanEditFormsTests(TestCase):
+    def test_false_for_plain_user(self) -> None:
+        user = UserFactory()
+        self.assertFalse(checks.can_edit_forms(user))
+
+    def test_true_for_department_owner(self) -> None:
+        user = UserFactory()
+        DepartmentFactory(name="Engineering").owners.add(user)
+        self.assertTrue(checks.can_edit_forms(user))
+
+    def test_true_for_administrator_with_no_owned_departments(self) -> None:
+        user = UserFactory(is_administrator=True)
+        self.assertTrue(checks.can_edit_forms(user))
+
+    def test_false_for_anonymous_user_does_not_raise(self) -> None:
+        self.assertFalse(checks.can_edit_forms(AnonymousUser()))
+
+    def test_false_for_none(self) -> None:
+        self.assertFalse(checks.can_edit_forms(None))
