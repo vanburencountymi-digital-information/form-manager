@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 
 from permissions.decorators import admin_or_dept_owner_required
-from permissions.services import AdministratorGroupService
+from permissions.services.admin_group_service import AdministratorGroupService
 
 from .forms import InviteUserForm
 

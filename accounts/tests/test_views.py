@@ -4,7 +4,7 @@ from django.urls import reverse
 
 from accounts.tests.factories import UserFactory
 from departments.tests.factories import DepartmentFactory
-from permissions.services import AdministratorGroupService
+from permissions.services.admin_group_service import AdministratorGroupService
 
 User = get_user_model()
 

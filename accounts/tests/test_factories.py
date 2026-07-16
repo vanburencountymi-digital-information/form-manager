@@ -1,7 +1,7 @@
 from django.test import TestCase
 
 from accounts.tests.factories import UserFactory
-from permissions.services import AdministratorGroupService
+from permissions.services.admin_group_service import AdministratorGroupService
 
 
 class UserFactoryIsAdministratorTests(TestCase):

@@ -1,7 +1,7 @@
 import factory
 from django.contrib.auth import get_user_model
 
-from permissions.services import AdministratorGroupService
+from permissions.services.admin_group_service import AdministratorGroupService
 
 User = get_user_model()
 

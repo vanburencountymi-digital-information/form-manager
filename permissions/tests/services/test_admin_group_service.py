@@ -2,7 +2,7 @@ from django.contrib.auth.models import Group
 from django.test import TestCase
 
 from accounts.tests.factories import UserFactory
-from permissions.admin_group_service import AdministratorGroupService
+from permissions.services.admin_group_service import AdministratorGroupService
 
 
 class AdministratorGroupServiceGetOrCreateGroupTests(TestCase):

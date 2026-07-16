@@ -11,12 +11,8 @@ if TYPE_CHECKING:
 
 
 class AdministratorGroupService:
-    """Manages the Administrator group: membership and lookups.
-
-    No individual Django permissions are attached to this group — being an
-    administrator is checked purely via group membership (see
-    is_administrator), a deliberate all-or-nothing bypass covering
-    department/form structure everywhere else in this app."""
+    """Primitive service that manages membership and lookup for the
+    Administrator group."""
 
     GROUP_NAME = "Administrator"
 
