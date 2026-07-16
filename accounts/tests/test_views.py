@@ -4,7 +4,7 @@ from django.urls import reverse
 
 from accounts.tests.factories import UserFactory
 from departments.tests.factories import DepartmentFactory
-from permissions.models import AdministratorPermissions
+from permissions.services import AdministratorGroupService
 
 User = get_user_model()
 
@@ -83,7 +83,7 @@ class InviteUserViewTests(TestCase):
         self.client.force_login(self.owner)
         self.client.post(self.url, self._post_data(is_administrator="on"))
         new_user = User.objects.get(email="jane@example.com")
-        self.assertFalse(AdministratorPermissions.is_administrator(new_user))
+        self.assertFalse(AdministratorGroupService.is_administrator(new_user))
 
     def test_administrator_post_without_flag_does_not_grant_administrator(self) -> None:
         admin_user = UserFactory(is_administrator=True)
@@ -91,7 +91,7 @@ class InviteUserViewTests(TestCase):
         self.client.force_login(admin_user)
         self.client.post(self.url, self._post_data())
         new_user = User.objects.get(email="jane@example.com")
-        self.assertFalse(AdministratorPermissions.is_administrator(new_user))
+        self.assertFalse(AdministratorGroupService.is_administrator(new_user))
 
     def test_administrator_post_with_flag_grants_administrator(self) -> None:
         admin_user = UserFactory(is_administrator=True)
@@ -99,4 +99,4 @@ class InviteUserViewTests(TestCase):
         self.client.force_login(admin_user)
         self.client.post(self.url, self._post_data(is_administrator="on"))
         new_user = User.objects.get(email="jane@example.com")
-        self.assertTrue(AdministratorPermissions.is_administrator(new_user))
+        self.assertTrue(AdministratorGroupService.is_administrator(new_user))

@@ -1,15 +1,8 @@
-from django.contrib.auth.models import Group, Permission
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 
-from accounts.tests.factories import UserFactory
 from departments.tests.factories import DepartmentFactory
-from permissions.models import AdministratorPermissions
 from permissions.tests.factories import FormPermissionsFactory
-
-
-def _permission_codenames(group):
-    return set(group.permissions.values_list("codename", flat=True))
 
 
 class FormPermissionsTests(TestCase):
@@ -55,78 +48,3 @@ class FormPermissionsTests(TestCase):
         fp = FormPermissionsFactory()
         with self.assertRaises(IntegrityError), transaction.atomic():
             FormPermissionsFactory(form=fp.form)
-
-
-class AdministratorPermissionsSyncTests(TestCase):
-    def test_creates_group_if_missing(self) -> None:
-        self.assertFalse(
-            Group.objects.filter(name=AdministratorPermissions.GROUP_NAME).exists()
-        )
-        group = AdministratorPermissions.sync_permissions()
-        self.assertEqual(group.name, AdministratorPermissions.GROUP_NAME)
-        self.assertEqual(
-            _permission_codenames(group),
-            set(AdministratorPermissions.PERMISSION_CODENAMES),
-        )
-
-    def test_corrects_drifted_permissions(self) -> None:
-        group = AdministratorPermissions.sync_permissions()
-        group.permissions.clear()
-        other_permission = Permission.objects.exclude(
-            codename__in=AdministratorPermissions.PERMISSION_CODENAMES
-        ).first()
-        group.permissions.add(other_permission)
-
-        AdministratorPermissions.sync_permissions()
-        group.refresh_from_db()
-        self.assertEqual(
-            _permission_codenames(group),
-            set(AdministratorPermissions.PERMISSION_CODENAMES),
-        )
-
-
-class AdministratorPermissionsGetOrCreateGroupTests(TestCase):
-    def test_creates_group_with_permissions_synced_on_first_call(self) -> None:
-        group = AdministratorPermissions.get_or_create_group()
-        self.assertEqual(
-            _permission_codenames(group),
-            set(AdministratorPermissions.PERMISSION_CODENAMES),
-        )
-
-    def test_does_not_resync_permissions_on_an_existing_group(self) -> None:
-        group = AdministratorPermissions.get_or_create_group()
-        group.permissions.clear()
-
-        AdministratorPermissions.get_or_create_group()
-        group.refresh_from_db()
-        self.assertEqual(_permission_codenames(group), set())
-
-
-class AdministratorPermissionsIsAdministratorTests(TestCase):
-    def test_false_for_user_not_in_administrator_group(self) -> None:
-        user = UserFactory()
-        self.assertFalse(AdministratorPermissions.is_administrator(user))
-
-    def test_true_for_user_in_administrator_group(self) -> None:
-        user = UserFactory(is_administrator=True)
-        self.assertTrue(AdministratorPermissions.is_administrator(user))
-
-    def test_creates_the_group_as_a_side_effect_even_if_it_did_not_exist(self) -> None:
-        user = UserFactory()
-        self.assertFalse(
-            Group.objects.filter(name=AdministratorPermissions.GROUP_NAME).exists()
-        )
-        AdministratorPermissions.is_administrator(user)
-        self.assertTrue(
-            Group.objects.filter(name=AdministratorPermissions.GROUP_NAME).exists()
-        )
-
-    def test_false_for_none_user(self) -> None:
-        self.assertFalse(AdministratorPermissions.is_administrator(None))
-
-
-class AdministratorPermissionsNotInAdminTests(TestCase):
-    def test_administrator_permissions_is_not_registered_in_admin(self) -> None:
-        from django.contrib import admin
-
-        self.assertNotIn(AdministratorPermissions, admin.site._registry)

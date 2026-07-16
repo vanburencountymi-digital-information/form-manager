@@ -1,13 +1,14 @@
 import factory
 from django.contrib.auth import get_user_model
 
-from permissions.models import AdministratorPermissions
+from permissions.services import AdministratorGroupService
 
 User = get_user_model()
 
 
 class UserFactory(factory.django.DjangoModelFactory[User]):
-    """Pass in `is_administrator=True` to add AdministratorPermissions to user."""
+    """Pass in `is_administrator=True` to add the user to the Administrator
+    group via AdministratorGroupService."""
 
     class Meta:
         model = User
@@ -26,4 +27,4 @@ class UserFactory(factory.django.DjangoModelFactory[User]):
     def is_administrator(self, create, extracted, **kwargs):
         if not create or not extracted:
             return
-        self.groups.add(AdministratorPermissions.get_or_create_group())
+        AdministratorGroupService.add_administrator(self)

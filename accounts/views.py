@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 
 from permissions.decorators import admin_or_dept_owner_required
-from permissions.models import AdministratorPermissions
+from permissions.services import AdministratorGroupService
 
 from .forms import InviteUserForm
 
@@ -27,7 +27,7 @@ def invite_user(request: HttpRequest) -> HttpResponse:
             if form.cleaned_data.get("department"):
                 form.cleaned_data["department"].add_member(new_user)
             if form.cleaned_data.get("is_administrator"):
-                new_user.groups.add(AdministratorPermissions.get_or_create_group())
+                AdministratorGroupService.add_administrator(new_user)
             return redirect("invite_user")
     else:
         form = InviteUserForm(user=user)

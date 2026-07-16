@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
-from permissions.models import AdministratorPermissions
+from permissions.services import AdministratorGroupService
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser
@@ -23,6 +25,6 @@ def is_department_owner(user: User | AnonymousUser | None) -> bool:
 
 def is_administrator(user: User | AnonymousUser | None) -> bool:
     """True if user belongs to the Administrator group. Thin wrapper around
-    AdministratorPermissions.is_administrator, kept here so every
-    cross-cutting role check lives in one place."""
-    return AdministratorPermissions.is_administrator(user)
+    AdministratorGroupService.is_administrator, kept here so every cross-cutting
+    role check lives in one place."""
+    return AdministratorGroupService.is_administrator(user)
