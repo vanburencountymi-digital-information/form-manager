@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from django.core.exceptions import PermissionDenied
 
-from permissions.checks import is_administrator, is_department_owner
+from permissions.checks import is_a_department_owner, is_administrator
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -31,7 +31,7 @@ def admin_or_dept_owner_required(
 ) -> Callable[..., HttpResponse]:
     @wraps(view_func)
     def wrapper(request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
-        if not (is_administrator(request.user) or is_department_owner(request.user)):
+        if not (is_administrator(request.user) or is_a_department_owner(request.user)):
             raise PermissionDenied
         return view_func(request, *args, **kwargs)
 

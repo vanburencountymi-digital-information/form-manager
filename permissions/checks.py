@@ -10,12 +10,9 @@ if TYPE_CHECKING:
     from accounts.models import User
 
 
-def is_department_owner(user: User | AnonymousUser | None) -> bool:
+def is_a_department_owner(user: User | AnonymousUser | None) -> bool:
     """True if user directly owns at least one department. Guards against
-    AnonymousUser explicitly — it isn't None, so `is None` doesn't catch it,
-    and it has no owned_departments accessor the way it fakes .groups, so
-    calling this on an anonymous request without the guard would raise
-    AttributeError instead of returning False."""
+    AnonymousUser explicitly."""
     if not user:
         return False
     if not user.is_authenticated:
@@ -24,7 +21,5 @@ def is_department_owner(user: User | AnonymousUser | None) -> bool:
 
 
 def is_administrator(user: User | AnonymousUser | None) -> bool:
-    """True if user belongs to the Administrator group. Thin wrapper around
-    AdministratorGroupService.is_administrator, kept here so every cross-cutting
-    role check lives in one place."""
+    """Utility method for AdministratorGroupService.is_administrator."""
     return AdministratorGroupService.is_administrator(user)

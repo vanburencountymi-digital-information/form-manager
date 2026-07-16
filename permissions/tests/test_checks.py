@@ -9,20 +9,20 @@ from permissions import checks
 class IsDepartmentOwnerTests(TestCase):
     def test_false_for_user_with_no_owned_departments(self) -> None:
         user = UserFactory()
-        self.assertFalse(checks.is_department_owner(user))
+        self.assertFalse(checks.is_a_department_owner(user))
 
     def test_true_for_department_owner(self) -> None:
         user = UserFactory()
         DepartmentFactory(name="Engineering").owners.add(user)
-        self.assertTrue(checks.is_department_owner(user))
+        self.assertTrue(checks.is_a_department_owner(user))
 
     def test_false_for_anonymous_user_does_not_raise(self) -> None:
         # AnonymousUser is not None and has no owned_departments accessor
         # — this must not raise AttributeError.
-        self.assertFalse(checks.is_department_owner(AnonymousUser()))
+        self.assertFalse(checks.is_a_department_owner(AnonymousUser()))
 
     def test_false_for_none(self) -> None:
-        self.assertFalse(checks.is_department_owner(None))
+        self.assertFalse(checks.is_a_department_owner(None))
 
 
 class IsAdministratorTests(TestCase):
