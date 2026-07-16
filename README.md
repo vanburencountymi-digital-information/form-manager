@@ -3,9 +3,10 @@
 Django app for department-scoped forms and approval workflows, built on
 `django-forms-workflows`.
 
-## Setup
+## Quick Setup
 
-Requires Python 3.12.
+Requires Python 3.12. It's recommended to create your environment
+outside of the project, so that it doesn't have to be added to gitignore.
 
 ```
 python -m venv venv
