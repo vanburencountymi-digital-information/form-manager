@@ -10,13 +10,9 @@ class DepartmentFactory(factory.django.DjangoModelFactory[Department]):
         below this one.
     `parent` (Department): create this department as a child of the
         passed-in Department.
-    `with_user` (True or User): add a member (not owner) to the department —
-        True auto-generates a User, or pass a specific User instance to use that one.
-    `with_owner` (True or User): add an owner (and therefore also a member) to the
-        department — True auto-generates a User, or pass a specific User instance
-        to use that one.
-    `owners` (iterable of Users): add each passed-in user as both an owner and
-        a member of the department.
+
+    Creates a plain Department only — no users, owners, or members. For
+    that, use DepartmentUserFactory instead.
     """
 
     class Meta:
@@ -31,6 +27,28 @@ class DepartmentFactory(factory.django.DjangoModelFactory[Department]):
         if parent is not None:
             return parent.add_child(*args, **kwargs)
         return model_class.add_root(*args, **kwargs)
+
+    @factory.post_generation
+    def chain_depth(self, create, extracted, **kwargs):
+        """DepartmentFactory(chain_depth=3) chains 3 descendants below this one."""
+        if not create or not extracted:
+            return
+        current = self
+        for _ in range(extracted):
+            current = DepartmentFactory(parent=current)
+
+
+class DepartmentUserFactory(DepartmentFactory):
+    """Same as DepartmentFactory, plus parameters for attaching users:
+
+    `with_user` (True or User): add a member (not owner) to the department —
+        True auto-generates a User, or pass a specific User instance to use that one.
+    `with_owner` (True or User): add an owner (and therefore also a member) to the
+        department — True auto-generates a User, or pass a specific User instance
+        to use that one.
+    `owners` (iterable of Users): add each passed-in user as both an owner and
+        a member of the department.
+    """
 
     @factory.post_generation
     def owners(self, create, extracted, **kwargs):
@@ -62,12 +80,3 @@ class DepartmentFactory(factory.django.DjangoModelFactory[Department]):
             return
         user = extracted if extracted is not True else UserFactory()
         self.add_member(user)
-
-    @factory.post_generation
-    def chain_depth(self, create, extracted, **kwargs):
-        """DepartmentFactory(chain_depth=3) chains 3 descendants below this one."""
-        if not create or not extracted:
-            return
-        current = self
-        for _ in range(extracted):
-            current = DepartmentFactory(parent=current)

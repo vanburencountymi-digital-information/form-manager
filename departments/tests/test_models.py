@@ -2,7 +2,7 @@ from django.test import TestCase
 
 from accounts.tests.factories import UserFactory
 from departments.models import Department, DepartmentHasChildrenError
-from departments.tests.factories import DepartmentFactory
+from departments.tests.factories import DepartmentFactory, DepartmentUserFactory
 
 
 class DepartmentTests(TestCase):
@@ -74,7 +74,7 @@ class DepartmentTests(TestCase):
     def test_department_can_have_multiple_owners(self) -> None:
         alice = UserFactory(email="alice@example.com")
         bob = UserFactory(email="bob@example.com")
-        dept = DepartmentFactory(name="Engineering", owners=[alice, bob])
+        dept = DepartmentUserFactory(name="Engineering", owners=[alice, bob])
         self.assertEqual(dept.owners.count(), 2)
         self.assertIn(alice, dept.owners.all())
         self.assertIn(bob, dept.owners.all())
