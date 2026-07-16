@@ -13,18 +13,18 @@ class UserRolesIsDepartmentOwnerTests(TestCase):
     def test_false_for_user_with_no_owned_departments(self) -> None:
         request = self.factory.get("/")
         request.user = UserFactory()
-        self.assertFalse(user_roles(request)["is_department_owner"])
+        self.assertFalse(user_roles(request)["is_a_department_owner"])
 
     def test_true_for_department_owner(self) -> None:
         request = self.factory.get("/")
         request.user = UserFactory()
         DepartmentFactory(name="Engineering").owners.add(request.user)
-        self.assertTrue(user_roles(request)["is_department_owner"])
+        self.assertTrue(user_roles(request)["is_a_department_owner"])
 
     def test_false_for_anonymous_user_does_not_raise(self) -> None:
         request = self.factory.get("/")
         request.user = AnonymousUser()
-        self.assertFalse(user_roles(request)["is_department_owner"])
+        self.assertFalse(user_roles(request)["is_a_department_owner"])
 
 
 class UserRolesIsAdministratorTests(TestCase):

@@ -12,6 +12,6 @@ def user_roles(request: HttpRequest) -> dict[str, bool]:
     """Injects user permissions checks into the template context"""
     user = getattr(request, "user", None)
     return {
-        "is_department_owner": is_a_department_owner(user),
+        "is_a_department_owner": is_a_department_owner(user),
         "is_administrator": is_administrator(user),
     }
