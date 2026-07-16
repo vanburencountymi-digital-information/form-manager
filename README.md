@@ -47,3 +47,9 @@ pre-commit install
 
 Runs Ruff and mypy automatically before every commit — the commit is blocked
 until both pass.
+
+# Test coverage
+Provided by Coverage.py.
+Check coverage with:  coverage run manage.py test
+Generate report with: coverage report
+Create html report with: coverage html
