@@ -54,7 +54,7 @@ class InviteUserFormTests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn("email", form.errors)
 
-    def test_department_is_optional(self) -> None:
+    def test_department_is_required(self) -> None:
         # Bypasses _assemble_form's default-department fallback deliberately
         # — passing department="" there would just fall back to
         # self.department, since "" is falsy.
@@ -65,8 +65,18 @@ class InviteUserFormTests(TestCase):
             "department": "",
         }
         form = InviteUserForm(data=data, user=self.inviter)
-        self.assertTrue(form.is_valid(), form.errors)
-        self.assertIsNone(form.cleaned_data["department"])
+        self.assertFalse(form.is_valid())
+        self.assertIn("department", form.errors)
+
+    def test_first_name_is_required(self) -> None:
+        form = self._assemble_form(email="jane@example.com", first_name="")
+        self.assertFalse(form.is_valid())
+        self.assertIn("first_name", form.errors)
+
+    def test_last_name_is_required(self) -> None:
+        form = self._assemble_form(email="jane@example.com", last_name="")
+        self.assertFalse(form.is_valid())
+        self.assertIn("last_name", form.errors)
 
     @override_settings(USER_EMAIL_DOMAINS=[])
     def test_empty_allowlist_rejects_every_domain(self) -> None:

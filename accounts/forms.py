@@ -56,10 +56,11 @@ class InviteUserForm(forms.ModelForm):
     email = forms.EmailField(required=True, max_length=150)
     department = forms.ModelChoiceField(
         queryset=Department.objects.none(),
-        required=False,
         help_text=(
-            "Optional — leave blank to invite someone with no department "
-            "membership yet (e.g. an approver-only account)."
+            "You may only invite users to departments that you are an "
+            "owner of. If the user's email already exists in a "
+            "different department, their accounts will be linked together "
+            "automatically. "
         ),
     )
     is_administrator = forms.BooleanField(
@@ -77,6 +78,12 @@ class InviteUserForm(forms.ModelForm):
         **kwargs: Any,
     ) -> None:
         super().__init__(*args, **kwargs)
+
+        # first_name/last_name are blank=True on the User model (Django's
+        # AbstractUser default), so ModelForm derives required=False for
+        # both unless overridden here.
+        self.fields["first_name"].required = True
+        self.fields["last_name"].required = True
 
         department_field = cast(forms.ModelChoiceField, self.fields["department"])
         department_field.queryset = self.get_department_field_queryset(user)

@@ -1,5 +1,36 @@
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Invite</button>
-</form>
+{% extends 'django_forms_workflows/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Invite User - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-md-8 col-lg-6">
+    <div class="card shadow-sm">
+      <div class="card-body p-4 p-md-5">
+        <div class="text-center mb-4">
+          <h2 class="fw-bold"><i class="bi bi-person-plus me-2"></i>Invite User</h2>
+          <p class="text-muted mb-0">Send an invitation to join {{ site_name }}.</p>
+        </div>
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            {{ form.non_field_errors|join:" " }}
+          </div>
+        {% endif %}
+
+        <form method="post">
+          {% csrf_token %}
+          {{ form|crispy }}
+          <div class="d-grid mt-4">
+            <button type="submit" class="btn btn-primary btn-lg">
+              <i class="bi bi-send me-2"></i>Send Invitation
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

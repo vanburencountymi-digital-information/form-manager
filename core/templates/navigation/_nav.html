@@ -80,7 +80,7 @@
                 </li>
             </ul>
         </li>
-        {% if is_a_department_owner or is_administrator %}
+        {% if can_manage_department_users %}
         <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" id="personnelDropdown" role="button"
                data-bs-toggle="dropdown" aria-expanded="false">

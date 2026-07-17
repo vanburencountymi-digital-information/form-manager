@@ -64,11 +64,12 @@ class InviteUserViewTests(TestCase):
         new_user = User.objects.get(email="jane@example.com")
         self.assertFalse(new_user.has_usable_password())
 
-    def test_owner_post_with_no_department_creates_user_with_no_group(self) -> None:
+    def test_owner_post_with_no_department_is_rejected(self) -> None:
         self.client.force_login(self.owner)
-        self.client.post(self.url, self._post_data(department=""))
-        new_user = User.objects.get(email="jane@example.com")
-        self.assertEqual(new_user.groups.count(), 0)
+        response = self.client.post(self.url, self._post_data(department=""))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(User.objects.filter(email="jane@example.com").exists())
+        self.assertTrue(response.context["form"].errors)
 
     def test_invalid_post_does_not_create_a_user_and_re_renders(self) -> None:
         self.client.force_login(self.owner)
