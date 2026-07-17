@@ -6,9 +6,11 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect, render
 
+from departments.models import DepartmentPermission
 from permissions.checks import can_manage_department_users
 from permissions.guards import assert_authenticated_user
 from permissions.services.admin_group_service import AdministratorGroupService
+from permissions.services.department_perm_service import DepartmentPermissionsService
 
 from .forms import InviteUserForm
 
@@ -27,8 +29,12 @@ def invite_user(request: HttpRequest) -> HttpResponse:
         if form.is_valid():
             form.instance.set_unusable_password()
             new_user = form.save()
-            if form.cleaned_data.get("department"):
-                form.cleaned_data["department"].add_member(new_user)
+            department = form.cleaned_data["department"]
+            department.add_member(new_user)
+            if form.cleaned_data.get("can_create_forms"):
+                DepartmentPermissionsService.grant_permission(
+                    new_user, department, DepartmentPermission.CAN_CREATE_FORMS
+                )
             if form.cleaned_data.get("is_administrator"):
                 AdministratorGroupService.add_administrator(new_user)
             return redirect("invite_user")

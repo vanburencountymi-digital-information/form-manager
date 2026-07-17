@@ -25,14 +25,14 @@ class UserSaveTests(TestCase):
     def test_email_at_150_characters_passes_full_clean(self) -> None:
         email = ("a" * 138) + "@example.com"  # exactly 150 characters
         self.assertEqual(len(email), 150)
-        user = User(username=email, email=email)
+        user = UserFactory.build(username=email, email=email)
         user.set_unusable_password()
         user.full_clean()
 
     def test_email_over_150_characters_fails_full_clean(self) -> None:
         email = ("a" * 139) + "@example.com"  # exactly 151 characters
         self.assertEqual(len(email), 151)
-        user = User(username=email, email=email)
+        user = UserFactory.build(username=email, email=email)
         user.set_unusable_password()
         with self.assertRaises(ValidationError) as ctx:
             user.full_clean()

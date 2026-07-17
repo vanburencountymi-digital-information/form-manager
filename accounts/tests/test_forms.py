@@ -127,6 +127,14 @@ class InviteUserFormTests(TestCase):
         form = self._assemble_form(email="jane@example.com", department=self.department)
         self.assertTrue(form.is_valid(), form.errors)
 
+    def test_disabled_is_administrator_field_ignores_tampered_post_value(self) -> None:
+        # self.inviter (the default user for _assemble_form) is not an
+        # administrator, so is_administrator should be disabled — Django
+        # must ignore this submitted value and use `initial` instead.
+        form = self._assemble_form(email="jane@example.com", is_administrator="on")
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertFalse(form.cleaned_data["is_administrator"])
+
 
 @override_settings(USER_EMAIL_DOMAINS=["example.com"])
 class GetDepartmentFieldQuerysetTests(TestCase):
@@ -189,34 +197,34 @@ class HandleIsAdministratorFieldTests(TestCase):
         self.owner = UserFactory()
         self.department.owners.add(self.owner)
 
-    def test_removes_the_field_for_a_non_administrator(self) -> None:
+    def test_disables_the_field_for_a_non_administrator(self) -> None:
         # Constructed with an administrator so __init__ leaves the field
-        # in place — isolates the removal behavior to the explicit call
-        # below, rather than __init__ already having removed it.
+        # enabled — isolates the disabling behavior to the explicit call
+        # below, rather than __init__ already having disabled it.
         admin_user = UserFactory(is_administrator=True)
         form = InviteUserForm(user=admin_user)
         form.handle_is_administrator_field(self.owner)
-        self.assertNotIn("is_administrator", form.fields)
+        self.assertTrue(form.fields["is_administrator"].disabled)
 
-    def test_removes_the_field_for_a_none_user(self) -> None:
+    def test_disables_the_field_for_a_none_user(self) -> None:
         admin_user = UserFactory(is_administrator=True)
         form = InviteUserForm(user=admin_user)
         form.handle_is_administrator_field(None)
-        self.assertNotIn("is_administrator", form.fields)
+        self.assertTrue(form.fields["is_administrator"].disabled)
 
-    def test_removes_the_field_for_an_anonymous_user(self) -> None:
+    def test_disables_the_field_for_an_anonymous_user(self) -> None:
         admin_user = UserFactory(is_administrator=True)
         form = InviteUserForm(user=admin_user)
         form.handle_is_administrator_field(AnonymousUser())
-        self.assertNotIn("is_administrator", form.fields)
+        self.assertTrue(form.fields["is_administrator"].disabled)
 
-    def test_keeps_the_field_for_an_administrator(self) -> None:
+    def test_keeps_the_field_enabled_for_an_administrator(self) -> None:
         admin_user = UserFactory(is_administrator=True)
         form = InviteUserForm(user=admin_user)
         form.handle_is_administrator_field(admin_user)
-        self.assertIn("is_administrator", form.fields)
+        self.assertFalse(form.fields["is_administrator"].disabled)
 
     def test_safe_to_call_more_than_once_for_a_non_administrator(self) -> None:
-        form = InviteUserForm(user=self.owner)  # __init__ already removed it once
-        form.handle_is_administrator_field(self.owner)  # must not raise KeyError
-        self.assertNotIn("is_administrator", form.fields)
+        form = InviteUserForm(user=self.owner)  # __init__ already disabled it once
+        form.handle_is_administrator_field(self.owner)  # must not raise
+        self.assertTrue(form.fields["is_administrator"].disabled)

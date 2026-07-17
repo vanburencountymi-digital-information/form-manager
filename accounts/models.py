@@ -27,6 +27,11 @@ class User(AbstractUser):
 
     email = models.EmailField(unique=True, blank=False, max_length=150)
 
+    # AbstractUser declares both blank=True — overridden here since every
+    # User in this project should have a real name, not just an email.
+    first_name = models.CharField(max_length=150)
+    last_name = models.CharField(max_length=150)
+
     def save(self, *args: Any, **kwargs: Any) -> None:
         self.email = self.email.lower()
         self.username = self.email

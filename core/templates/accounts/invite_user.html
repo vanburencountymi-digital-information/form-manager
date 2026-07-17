@@ -22,7 +22,31 @@
 
         <form method="post">
           {% csrf_token %}
-          {{ form|crispy }}
+          {{ form.email|as_crispy_field }}
+          {{ form.first_name|as_crispy_field }}
+          {{ form.last_name|as_crispy_field }}
+          {{ form.department|as_crispy_field }}
+
+          {{ form.is_administrator|as_crispy_field }}
+          {% if form.is_administrator.field.disabled %}
+            <p class="text-muted small mt-n2 mb-3">
+              <i class="bi bi-lock-fill me-1"></i>Only administrators can
+              grant administrator access to a new user.
+            </p>
+          {% endif %}
+
+          <hr class="my-4">
+          <h5 class="mb-2">Permissions</h5>
+          <p class="text-muted small">
+            These are department-level permissions — granting one applies
+            to every form scoped to the selected department, not just one
+            specific form. A user can also be individually added to a
+            single form without holding any department-level permission at
+            all; that's managed separately, through the form's own
+            permissions.
+          </p>
+          {{ form.can_create_forms|as_crispy_field }}
+
           <div class="d-grid mt-4">
             <button type="submit" class="btn btn-primary btn-lg">
               <i class="bi bi-send me-2"></i>Send Invitation

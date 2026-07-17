@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from guardian.shortcuts import get_objects_for_user
+from guardian.shortcuts import assign_perm, get_objects_for_user
 
 from departments.models import Department
 
@@ -34,3 +34,13 @@ class DepartmentPermissionsService:
         return get_objects_for_user(
             user, f"departments.{codename}", klass=Department
         ).exists()
+
+    @classmethod
+    def grant_permission(
+        cls, user: User, department: Department, codename: DepartmentPermission
+    ) -> None:
+        """Explicitly grants `codename` to `user` on `department` via
+        guardian. Does not check whether the caller is allowed to grant it —
+        that's the caller's responsibility (e.g. the invite flow only ever
+        lets an inviter pick a department they already own or administer)."""
+        assign_perm(f"departments.{codename}", user, department)

@@ -109,3 +109,40 @@ class DepartmentPermissionsServiceHasPermissionAnywhereTests(TestCase):
         self.assertFalse(
             DepartmentPermissionsService.has_permission_anywhere(user, checked)
         )
+
+
+class DepartmentPermissionsServiceGrantPermissionTests(TestCase):
+    @parameterized.expand([(codename,) for codename in DepartmentPermission])
+    def test_grants_the_permission_on_the_given_department(
+        self, codename: DepartmentPermission
+    ) -> None:
+        user = UserFactory()
+        dept = DepartmentFactory(name="Engineering")
+        DepartmentPermissionsService.grant_permission(user, dept, codename)
+        self.assertTrue(
+            DepartmentPermissionsService.has_permission(user, dept, codename)
+        )
+
+    def test_does_not_grant_the_permission_on_a_different_department(self) -> None:
+        user = UserFactory()
+        dept = DepartmentFactory(name="Engineering")
+        other_dept = DepartmentFactory(name="Sales")
+        DepartmentPermissionsService.grant_permission(
+            user, dept, DepartmentPermission.CAN_CREATE_FORMS
+        )
+        self.assertFalse(
+            DepartmentPermissionsService.has_permission(
+                user, other_dept, DepartmentPermission.CAN_CREATE_FORMS
+            )
+        )
+
+    @parameterized.expand(list(itertools.permutations(DepartmentPermission, 2)))
+    def test_granting_one_codename_does_not_imply_another(
+        self, granted: DepartmentPermission, checked: DepartmentPermission
+    ) -> None:
+        user = UserFactory()
+        dept = DepartmentFactory(name="Engineering")
+        DepartmentPermissionsService.grant_permission(user, dept, granted)
+        self.assertFalse(
+            DepartmentPermissionsService.has_permission(user, dept, checked)
+        )

@@ -66,6 +66,7 @@ class InviteUserForm(forms.ModelForm):
     is_administrator = forms.BooleanField(
         required=False, label="Grant administrator access"
     )
+    can_create_forms = forms.BooleanField(required=False, label="Can create forms")
 
     class Meta:
         model = User
@@ -78,12 +79,6 @@ class InviteUserForm(forms.ModelForm):
         **kwargs: Any,
     ) -> None:
         super().__init__(*args, **kwargs)
-
-        # first_name/last_name are blank=True on the User model (Django's
-        # AbstractUser default), so ModelForm derives required=False for
-        # both unless overridden here.
-        self.fields["first_name"].required = True
-        self.fields["last_name"].required = True
 
         department_field = cast(forms.ModelChoiceField, self.fields["department"])
         department_field.queryset = self.get_department_field_queryset(user)
@@ -115,10 +110,13 @@ class InviteUserForm(forms.ModelForm):
     def handle_is_administrator_field(
         self, requesting_user: User | AnonymousUser | None = None
     ) -> None:
-        """Removes is_administrator field from form_data if the requesting user is not
-        an administrator. Prevents POST hijacking."""
-        if not is_authenticated_user(requesting_user):
-            self.fields.pop("is_administrator", None)
+        """Grays out (rather than removes) is_administrator for anyone who
+        isn't themselves an administrator. Field-level `disabled` is a real,
+        server-side control — Django ignores whatever was submitted for
+        this field during cleaning and substitutes `initial` instead, so
+        this can't be tampered with by a raw/modified POST request the way
+        a purely cosmetic HTML `disabled` attribute could."""
+        if is_authenticated_user(requesting_user) and is_administrator(requesting_user):
             return
-        if not is_administrator(requesting_user):
-            self.fields.pop("is_administrator", None)
+        self.fields["is_administrator"].disabled = True
+        self.fields["is_administrator"].initial = False
