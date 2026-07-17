@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
@@ -18,6 +19,20 @@ class DepartmentHasChildrenError(Exception):
     departments — the caller must move or archive them first."""
 
 
+class DepartmentPermission(StrEnum):
+    """Codenames for the six department-scoped guardian permissions on
+    Department (Meta.permissions, below). Only CAN_CREATE_FORMS is wired up
+    to a check/grant flow so far — the rest are declared here so the schema
+    lands once, but nothing outside this enum references them yet."""
+
+    CAN_CREATE_FORMS = "can_create_forms"
+    CAN_EDIT_FORMS = "can_edit_forms"
+    CAN_ARCHIVE_FORMS = "can_archive_forms"
+    CAN_CREATE_WORKFLOWS = "can_create_workflows"
+    CAN_EDIT_WORKFLOWS = "can_edit_workflows"
+    CAN_ARCHIVE_WORKFLOWS = "can_archive_workflows"
+
+
 class Department(MP_Node):
     name = models.CharField(max_length=100, unique=True)
     group = models.OneToOneField(Group, on_delete=models.CASCADE, editable=False)
@@ -29,6 +44,31 @@ class Department(MP_Node):
     is_archived = models.BooleanField(default=False)
 
     node_order_by = ["name"]
+
+    class Meta:
+        permissions = [
+            (
+                DepartmentPermission.CAN_CREATE_FORMS,
+                "Can create forms for this department",
+            ),
+            (DepartmentPermission.CAN_EDIT_FORMS, "Can edit this department's forms"),
+            (
+                DepartmentPermission.CAN_ARCHIVE_FORMS,
+                "Can archive this department's forms",
+            ),
+            (
+                DepartmentPermission.CAN_CREATE_WORKFLOWS,
+                "Can create workflows for this department's forms",
+            ),
+            (
+                DepartmentPermission.CAN_EDIT_WORKFLOWS,
+                "Can edit this department's workflows",
+            ),
+            (
+                DepartmentPermission.CAN_ARCHIVE_WORKFLOWS,
+                "Can archive this department's workflows",
+            ),
+        ]
 
     def __str__(self) -> str:
         return self.name
