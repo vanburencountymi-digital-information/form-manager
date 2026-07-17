@@ -2,7 +2,8 @@ from django.contrib.auth.models import AnonymousUser
 from django.test import TestCase
 
 from accounts.tests.factories import UserFactory
-from departments.tests.factories import DepartmentFactory
+from departments.models import DepartmentPermission
+from departments.tests.factories import DepartmentFactory, DepartmentUserFactory
 from permissions import checks
 from permissions.guards import UnauthenticatedUserError
 
@@ -57,6 +58,22 @@ class CanCreateFormsTests(TestCase):
     def test_true_for_administrator_with_no_owned_departments(self) -> None:
         user = UserFactory(is_administrator=True)
         self.assertTrue(checks.can_create_forms(user))
+
+    def test_true_for_explicit_department_level_grant_with_no_ownership(self) -> None:
+        user = UserFactory()
+        DepartmentUserFactory(
+            name="Engineering",
+            with_permissions=[(user, DepartmentPermission.CAN_CREATE_FORMS)],
+        )
+        self.assertTrue(checks.can_create_forms(user))
+
+    def test_false_for_a_department_level_grant_of_a_different_codename(self) -> None:
+        user = UserFactory()
+        DepartmentUserFactory(
+            name="Engineering",
+            with_permissions=[(user, DepartmentPermission.CAN_EDIT_FORMS)],
+        )
+        self.assertFalse(checks.can_create_forms(user))
 
     def test_raises_for_anonymous_user(self) -> None:
         with self.assertRaises(UnauthenticatedUserError):
