@@ -1,7 +1,15 @@
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
+from guardian.shortcuts import assign_perm
+from parameterized import parameterized
 
 from accounts.tests.factories import UserFactory
-from departments.models import Department, DepartmentHasChildrenError
+from departments.models import (
+    Department,
+    DepartmentHasChildrenError,
+    DepartmentPermission,
+)
 from departments.tests.factories import DepartmentFactory, DepartmentUserFactory
 
 
@@ -223,3 +231,27 @@ class DepartmentTests(TestCase):
         dept = DepartmentFactory(name="Engineering")
         with self.assertRaises(PermissionError):
             Department.objects.filter(pk=dept.pk).delete()
+
+
+class DepartmentPermissionMetaTests(TestCase):
+    @parameterized.expand([(codename,) for codename in DepartmentPermission])
+    def test_codename_is_registered_as_a_permission(
+        self, codename: DepartmentPermission
+    ) -> None:
+        content_type = ContentType.objects.get_for_model(Department)
+        self.assertTrue(
+            Permission.objects.filter(
+                content_type=content_type, codename=codename.value
+            ).exists()
+        )
+
+    @parameterized.expand([(codename,) for codename in DepartmentPermission])
+    def test_can_assign_and_check_an_object_level_department_permission(
+        self, codename: DepartmentPermission
+    ) -> None:
+        dept = DepartmentFactory(name="Engineering")
+        other_dept = DepartmentFactory(name="Sales")
+        user = UserFactory()
+        assign_perm(codename, user, dept)
+        self.assertTrue(user.has_perm(f"departments.{codename}", dept))
+        self.assertFalse(user.has_perm(f"departments.{codename}", other_dept))

@@ -4,12 +4,12 @@ import inspect
 from functools import wraps
 from typing import TYPE_CHECKING
 
+from accounts.models import User
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from django.contrib.auth.models import AnonymousUser
-
-    from accounts.models import User
 
 
 def return_false_if_user_not_authenticated[**P](
@@ -40,3 +40,20 @@ def return_false_if_user_not_authenticated[**P](
         return func(*args, **kwargs)
 
     return wrapper
+
+
+def assert_authenticated_user(user: User | AnonymousUser | None) -> User:
+    """Narrows `user` to a real, authenticated User, for use inside a
+    function already wrapped by return_false_if_user_not_authenticated,
+    right before passing `user` to something typed as User. Should be
+    unreachable in normal operation, since the guard already filtered out
+    anything else — raises explicitly (not a bare `assert`) so this check
+    can't be silently skipped under Python's -O flag.
+    """
+    if not isinstance(user, User):
+        raise AssertionError(
+            f"Expected an authenticated User, got {user!r} — this should be "
+            "unreachable if return_false_if_user_not_authenticated is "
+            "applied correctly."
+        )
+    return user

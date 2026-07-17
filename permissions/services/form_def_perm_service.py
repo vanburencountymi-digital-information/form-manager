@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from permissions.checks import is_administrator
-from permissions.guards import return_false_if_user_not_authenticated
+from permissions.guards import (
+    assert_authenticated_user,
+    return_false_if_user_not_authenticated,
+)
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser
@@ -24,6 +27,5 @@ class FormDefinitionPermissionsService:
         administrators bypass, otherwise the user must own the department."""
         if is_administrator(user):
             return True
-        # return_false_if_user_not_authenticated guarantees an authenticated
-        # User by this point — cast narrows for mypy.
-        return department.check_if_owned_by_user(cast("User", user))
+        user = assert_authenticated_user(user)
+        return department.check_if_owned_by_user(user)

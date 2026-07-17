@@ -1,4 +1,5 @@
 import factory
+from guardian.shortcuts import assign_perm
 
 from accounts.tests.factories import UserFactory
 from departments.models import Department
@@ -48,6 +49,10 @@ class DepartmentUserFactory(DepartmentFactory):
         to use that one.
     `owners` (iterable of Users): add each passed-in user as both an owner and
         a member of the department.
+    `with_permissions` (iterable of (User, DepartmentPermission) pairs): grants
+        each user the given object-level guardian permission on this
+        department directly — does not imply membership or ownership, use
+        with_user/with_owner/owners alongside it for that.
     """
 
     @factory.post_generation
@@ -80,3 +85,12 @@ class DepartmentUserFactory(DepartmentFactory):
             return
         user = extracted if extracted is not True else UserFactory()
         self.add_member(user)
+
+    @factory.post_generation
+    def with_permissions(self, create, extracted, **kwargs):
+        """with_permissions=[(user, codename), ...] assigns each user the
+        given object-level guardian permission on this department."""
+        if not create or not extracted:
+            return
+        for user, codename in extracted:
+            assign_perm(codename, user, self)

@@ -7,6 +7,11 @@ extend-exclude = ["*/migrations/*"]
 # E/F = pycodestyle errors + pyflakes, I = import sorting, UP = pyupgrade,
 # B = bugbear, SIM = simplify, C4 = comprehensions, DJ = Django-specific.
 select = ["E", "F", "I", "UP", "B", "SIM", "C4", "DJ"]
+# E501 (line-too-long) is the formatter's job, not the linter's — ruff format
+# (below) already reflows lines to fit line-length on every commit. Leaving
+# E501 selected here would just reject commits for something format was
+# about to fix anyway, since check runs before format in .pre-commit-config.yaml.
+ignore = ["E501"]
 
 [tool.ruff.format]
 quote-style = "double"

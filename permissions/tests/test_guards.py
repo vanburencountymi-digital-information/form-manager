@@ -2,7 +2,10 @@ from django.contrib.auth.models import AnonymousUser
 from django.test import TestCase
 
 from accounts.tests.factories import UserFactory
-from permissions.guards import return_false_if_user_not_authenticated
+from permissions.guards import (
+    assert_authenticated_user,
+    return_false_if_user_not_authenticated,
+)
 
 
 class ReturnFalseIfUserNotAuthenticatedTests(TestCase):
@@ -43,3 +46,17 @@ class ReturnFalseIfUserNotAuthenticatedTests(TestCase):
             @return_false_if_user_not_authenticated
             def missing_user_param(requesting_user: object) -> bool:
                 return True
+
+
+class AssertAuthenticatedUserTests(TestCase):
+    def test_returns_the_user_unchanged_for_a_real_user(self) -> None:
+        user = UserFactory()
+        self.assertEqual(assert_authenticated_user(user), user)
+
+    def test_raises_for_anonymous_user(self) -> None:
+        with self.assertRaises(AssertionError):
+            assert_authenticated_user(AnonymousUser())
+
+    def test_raises_for_none(self) -> None:
+        with self.assertRaises(AssertionError):
+            assert_authenticated_user(None)

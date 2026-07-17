@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
-from permissions.guards import return_false_if_user_not_authenticated
+from permissions.guards import (
+    assert_authenticated_user,
+    return_false_if_user_not_authenticated,
+)
 from permissions.services.admin_group_service import AdministratorGroupService
 
 if TYPE_CHECKING:
@@ -14,9 +17,8 @@ if TYPE_CHECKING:
 @return_false_if_user_not_authenticated
 def is_a_department_owner(user: User | AnonymousUser | None) -> bool:
     """True if user directly owns at least one department."""
-    # return_false_if_user_not_authenticated guarantees an authenticated
-    # User by this point — cast narrows for mypy.
-    return cast("User", user).owned_departments.exists()
+    user = assert_authenticated_user(user)
+    return user.owned_departments.exists()
 
 
 def is_administrator(user: User | AnonymousUser | None) -> bool:
