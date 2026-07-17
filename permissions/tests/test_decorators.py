@@ -1,3 +1,4 @@
+from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import PermissionDenied
 from django.test import RequestFactory, TestCase
 
@@ -27,6 +28,15 @@ class AdministratorRequiredTests(TestCase):
         request.user = UserFactory(is_administrator=True)
         self.assertEqual(self.dummy_view(request), "ok")
 
+    def test_denies_anonymous_user_with_permission_denied_not_a_crash(self) -> None:
+        # Confirms the decorator's own is_authenticated_user check catches
+        # this before ever reaching checks.is_administrator, which would now
+        # raise UnauthenticatedUserError instead of returning False.
+        request = self.factory.get("/")
+        request.user = AnonymousUser()
+        with self.assertRaises(PermissionDenied):
+            self.dummy_view(request)
+
 
 class DepartmentManagerRequiredTests(TestCase):
     def setUp(self) -> None:
@@ -54,3 +64,9 @@ class DepartmentManagerRequiredTests(TestCase):
         request = self.factory.get("/")
         request.user = UserFactory(is_administrator=True)
         self.assertEqual(self.dummy_view(request), "ok")
+
+    def test_denies_anonymous_user_with_permission_denied_not_a_crash(self) -> None:
+        request = self.factory.get("/")
+        request.user = AnonymousUser()
+        with self.assertRaises(PermissionDenied):
+            self.dummy_view(request)

@@ -12,6 +12,7 @@ from django.contrib.auth.forms import (  # type: ignore[attr-defined]
 from accounts.models import User
 from departments.models import Department
 from permissions.checks import is_administrator
+from permissions.guards import is_authenticated_user
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -96,7 +97,7 @@ class InviteUserForm(forms.ModelForm):
     ) -> QuerySet[Department]:
         """Filters the Department queryset based on the requesting user's
         permissions."""
-        if not requesting_user or not requesting_user.is_authenticated:
+        if not is_authenticated_user(requesting_user):
             return Department.objects.none()
         if is_administrator(requesting_user):
             return Department.objects.filter(is_archived=False)
@@ -109,6 +110,8 @@ class InviteUserForm(forms.ModelForm):
     ) -> None:
         """Removes is_administrator field from form_data if the requesting user is not
         an administrator. Prevents POST hijacking."""
-
+        if not is_authenticated_user(requesting_user):
+            self.fields.pop("is_administrator", None)
+            return
         if not is_administrator(requesting_user):
             self.fields.pop("is_administrator", None)

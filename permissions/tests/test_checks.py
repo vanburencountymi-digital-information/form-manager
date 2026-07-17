@@ -4,6 +4,7 @@ from django.test import TestCase
 from accounts.tests.factories import UserFactory
 from departments.tests.factories import DepartmentFactory
 from permissions import checks
+from permissions.guards import UnauthenticatedUserError
 
 
 class IsDepartmentOwnerTests(TestCase):
@@ -16,13 +17,13 @@ class IsDepartmentOwnerTests(TestCase):
         DepartmentFactory(name="Engineering").owners.add(user)
         self.assertTrue(checks.is_a_department_owner(user))
 
-    def test_false_for_anonymous_user_does_not_raise(self) -> None:
-        # AnonymousUser is not None and has no owned_departments accessor
-        # — this must not raise AttributeError.
-        self.assertFalse(checks.is_a_department_owner(AnonymousUser()))
+    def test_raises_for_anonymous_user(self) -> None:
+        with self.assertRaises(UnauthenticatedUserError):
+            checks.is_a_department_owner(AnonymousUser())
 
-    def test_false_for_none(self) -> None:
-        self.assertFalse(checks.is_a_department_owner(None))
+    def test_raises_for_none(self) -> None:
+        with self.assertRaises(UnauthenticatedUserError):
+            checks.is_a_department_owner(None)
 
 
 class IsAdministratorTests(TestCase):
@@ -34,11 +35,13 @@ class IsAdministratorTests(TestCase):
         user = UserFactory(is_administrator=True)
         self.assertTrue(checks.is_administrator(user))
 
-    def test_false_for_anonymous_user_does_not_raise(self) -> None:
-        self.assertFalse(checks.is_administrator(AnonymousUser()))
+    def test_raises_for_anonymous_user(self) -> None:
+        with self.assertRaises(UnauthenticatedUserError):
+            checks.is_administrator(AnonymousUser())
 
-    def test_false_for_none(self) -> None:
-        self.assertFalse(checks.is_administrator(None))
+    def test_raises_for_none(self) -> None:
+        with self.assertRaises(UnauthenticatedUserError):
+            checks.is_administrator(None)
 
 
 class CanCreateFormsTests(TestCase):
@@ -55,11 +58,13 @@ class CanCreateFormsTests(TestCase):
         user = UserFactory(is_administrator=True)
         self.assertTrue(checks.can_create_forms(user))
 
-    def test_false_for_anonymous_user_does_not_raise(self) -> None:
-        self.assertFalse(checks.can_create_forms(AnonymousUser()))
+    def test_raises_for_anonymous_user(self) -> None:
+        with self.assertRaises(UnauthenticatedUserError):
+            checks.can_create_forms(AnonymousUser())
 
-    def test_false_for_none(self) -> None:
-        self.assertFalse(checks.can_create_forms(None))
+    def test_raises_for_none(self) -> None:
+        with self.assertRaises(UnauthenticatedUserError):
+            checks.can_create_forms(None)
 
 
 class CanEditFormsTests(TestCase):
@@ -76,8 +81,10 @@ class CanEditFormsTests(TestCase):
         user = UserFactory(is_administrator=True)
         self.assertTrue(checks.can_edit_forms(user))
 
-    def test_false_for_anonymous_user_does_not_raise(self) -> None:
-        self.assertFalse(checks.can_edit_forms(AnonymousUser()))
+    def test_raises_for_anonymous_user(self) -> None:
+        with self.assertRaises(UnauthenticatedUserError):
+            checks.can_edit_forms(AnonymousUser())
 
-    def test_false_for_none(self) -> None:
-        self.assertFalse(checks.can_edit_forms(None))
+    def test_raises_for_none(self) -> None:
+        with self.assertRaises(UnauthenticatedUserError):
+            checks.can_edit_forms(None)

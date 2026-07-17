@@ -25,7 +25,7 @@ class FormDefinitionPermissionsService:
     ) -> bool:
         """True if user can create a new form for this specific department —
         administrators bypass, otherwise the user must own the department."""
+        user = assert_authenticated_user(user)
         if is_administrator(user):
             return True
-        user = assert_authenticated_user(user)
         return department.check_if_owned_by_user(user)

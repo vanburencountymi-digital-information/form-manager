@@ -97,3 +97,37 @@ class UserRolesCanEditFormsTests(TestCase):
         request = self.factory.get("/")
         request.user = AnonymousUser()
         self.assertFalse(user_roles(request)["can_edit_forms"])
+
+
+class UserRolesShortCircuitsForUnauthenticatedTests(TestCase):
+    """user_roles checks authentication once, up front, rather than relying
+    on each individual check's own guard — see permissions/guards.py's
+    is_authenticated_user."""
+
+    def setUp(self) -> None:
+        self.factory = RequestFactory()
+
+    def test_all_false_for_anonymous_user(self) -> None:
+        request = self.factory.get("/")
+        request.user = AnonymousUser()
+        self.assertEqual(
+            user_roles(request),
+            {
+                "is_a_department_owner": False,
+                "is_administrator": False,
+                "can_create_forms": False,
+                "can_edit_forms": False,
+            },
+        )
+
+    def test_all_false_when_request_has_no_user_attribute(self) -> None:
+        request = self.factory.get("/")
+        self.assertEqual(
+            user_roles(request),
+            {
+                "is_a_department_owner": False,
+                "is_administrator": False,
+                "can_create_forms": False,
+                "can_edit_forms": False,
+            },
+        )
