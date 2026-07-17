@@ -40,3 +40,13 @@ def can_edit_forms(user: User) -> bool:
     """True if user can edit at least one form somewhere"""
     # TODO: update once there are department level permissions
     return is_administrator(user) or is_a_department_owner(user)
+
+
+@require_authenticated_user
+def can_manage_department_users(user: User) -> bool:
+    """True if user can invite, edit, or remove users for at least one
+    department — administrator, or owns at least one department. User
+    management is owners-only by design (see IMPLEMENTATION_PLAN.md), not
+    an individually-grantable capability, so there's no explicit-guardian-
+    grant check here the way can_create_forms has one."""
+    return is_administrator(user) or is_a_department_owner(user)

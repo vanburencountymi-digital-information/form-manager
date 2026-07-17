@@ -105,3 +105,37 @@ class CanEditFormsTests(TestCase):
     def test_raises_for_none(self) -> None:
         with self.assertRaises(UnauthenticatedUserError):
             checks.can_edit_forms(None)
+
+
+class CanManageDepartmentUsersTests(TestCase):
+    def test_false_for_plain_user(self) -> None:
+        user = UserFactory()
+        self.assertFalse(checks.can_manage_department_users(user))
+
+    def test_true_for_department_owner(self) -> None:
+        user = UserFactory()
+        DepartmentFactory(name="Engineering").owners.add(user)
+        self.assertTrue(checks.can_manage_department_users(user))
+
+    def test_true_for_administrator_with_no_owned_departments(self) -> None:
+        user = UserFactory(is_administrator=True)
+        self.assertTrue(checks.can_manage_department_users(user))
+
+    def test_false_for_a_department_level_grant_alone(self) -> None:
+        # Not an individually-grantable capability — an explicit guardian
+        # grant of some other DepartmentPermission doesn't count, only
+        # ownership or administrator status do.
+        user = UserFactory()
+        DepartmentUserFactory(
+            name="Engineering",
+            with_permissions=[(user, DepartmentPermission.CAN_CREATE_FORMS)],
+        )
+        self.assertFalse(checks.can_manage_department_users(user))
+
+    def test_raises_for_anonymous_user(self) -> None:
+        with self.assertRaises(UnauthenticatedUserError):
+            checks.can_manage_department_users(AnonymousUser())
+
+    def test_raises_for_none(self) -> None:
+        with self.assertRaises(UnauthenticatedUserError):
+            checks.can_manage_department_users(None)
