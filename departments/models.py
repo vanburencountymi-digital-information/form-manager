@@ -107,6 +107,10 @@ class Department(MP_Node):
     def check_if_owned_by_user(self, user: User) -> bool:
         return user in self.owners.all()
 
+    def check_if_user_is_member(self, user: User) -> bool:
+        """True if user is a member of this department's group."""
+        return self.group.user_set.filter(pk=user.pk).exists()
+
     @classmethod
     def get_departments_owned_by_user(cls, user: User) -> models.QuerySet[Department]:
         """Departments this user directly owns, plus every descendant of

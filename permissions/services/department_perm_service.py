@@ -20,6 +20,8 @@ class DepartmentPermissionsService:
     def has_permission(
         cls, user: User, department: Department, codename: DepartmentPermission
     ) -> bool:
+        """Returns True if user is department owner, or if department-scoped permissions
+        have been granted to the user by owners/admins."""
         if department.check_if_owned_by_user(user):
             return True
         return user.has_perm(f"departments.{codename}", department)

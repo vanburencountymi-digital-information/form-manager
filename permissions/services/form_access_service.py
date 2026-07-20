@@ -39,11 +39,13 @@ class FormAccessService:
     def can_create_form(
         cls, user: User | AnonymousUser | None, department: Department
     ) -> bool:
-        """True if user can create a new form scoped to `department` —
-        administrator, department owner, or explicit can_create_forms grant."""
+        """True if user can create a new form, based on deparment-scoped
+        form permissions as set by administrators/department owners."""
         user = assert_authenticated_user(user)
         if AdministratorGroupService.is_administrator(user):
             return True
+        if not department.check_if_user_is_member(user):
+            return False
         return DepartmentPermissionsService.has_permission(
             user, department, DepartmentPermission.CAN_CREATE_FORMS
         )
