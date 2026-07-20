@@ -16,7 +16,11 @@ distlib==0.4.3
 Django==6.0.5
 django-countries==9.0.0
 django-crispy-forms==2.6
-django-forms-workflows==0.76.0
+# Pinned to a commit, not a release — our form_builder_save refactor PR
+# (opensensor/django-forms-workflows) merged upstream but hasn't shipped in
+# a PyPI release yet. Switch back to a normal version pin once it has (see
+# IMPLEMENTATION_PLAN.md).
+django-forms-workflows @ git+https://github.com/opensensor/django-forms-workflows.git@11e5c361115091f41f44a7d649079a184fc659f0
 django-guardian==3.3.2
 django-localflavor==5.0
 django-nested-admin==4.1.6
