@@ -31,6 +31,8 @@ def invite_user(request: HttpRequest) -> HttpResponse:
             new_user = form.save()
             department = form.cleaned_data["department"]
             department.add_member(new_user)
+            if form.cleaned_data.get("is_department_owner"):
+                department.add_user_to_owners(new_user)
             if form.cleaned_data.get("can_create_forms"):
                 DepartmentPermissionsService.grant_permission(
                     new_user, department, DepartmentPermission.CAN_CREATE_FORMS

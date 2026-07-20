@@ -63,6 +63,16 @@ class InviteUserForm(forms.ModelForm):
             "automatically. "
         ),
     )
+    is_department_owner = forms.BooleanField(
+        required=False,
+        label="Make this user a department owner",
+        help_text=(
+            "Department owners can invite, edit, and remove users for this "
+            "department, and automatically hold every department-level "
+            "permission below — there's no need to also check them "
+            "individually for an owner."
+        ),
+    )
     is_administrator = forms.BooleanField(
         required=False, label="Grant administrator access"
     )

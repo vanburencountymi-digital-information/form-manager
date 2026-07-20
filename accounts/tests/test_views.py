@@ -101,3 +101,15 @@ class InviteUserViewTests(TestCase):
         self.client.post(self.url, self._post_data(is_administrator="on"))
         new_user = User.objects.get(email="jane@example.com")
         self.assertTrue(AdministratorGroupService.is_administrator(new_user))
+
+    def test_owner_post_without_flag_does_not_grant_ownership(self) -> None:
+        self.client.force_login(self.owner)
+        self.client.post(self.url, self._post_data())
+        new_user = User.objects.get(email="jane@example.com")
+        self.assertFalse(self.department.check_if_owned_by_user(new_user))
+
+    def test_owner_post_with_department_owner_flag_grants_ownership(self) -> None:
+        self.client.force_login(self.owner)
+        self.client.post(self.url, self._post_data(is_department_owner="on"))
+        new_user = User.objects.get(email="jane@example.com")
+        self.assertTrue(self.department.check_if_owned_by_user(new_user))

@@ -26,6 +26,7 @@
           {{ form.first_name|as_crispy_field }}
           {{ form.last_name|as_crispy_field }}
           {{ form.department|as_crispy_field }}
+          {{ form.is_department_owner|as_crispy_field }}
 
           {{ form.is_administrator|as_crispy_field }}
           {% if form.is_administrator.field.disabled %}
@@ -36,16 +37,39 @@
           {% endif %}
 
           <hr class="my-4">
-          <h5 class="mb-2">Permissions</h5>
-          <p class="text-muted small">
-            These are department-level permissions — granting one applies
-            to every form scoped to the selected department, not just one
-            specific form. A user can also be individually added to a
-            single form without holding any department-level permission at
-            all; that's managed separately, through the form's own
-            permissions.
-          </p>
-          {{ form.can_create_forms|as_crispy_field }}
+          <div class="accordion" id="permissionsAccordion">
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button
+                  class="accordion-button"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#permissionsCollapse"
+                  aria-expanded="true"
+                  aria-controls="permissionsCollapse"
+                  id="permissionsAccordionButton"
+                >
+                  Permissions
+                </button>
+              </h2>
+              <div
+                id="permissionsCollapse"
+                class="accordion-collapse collapse show"
+                aria-labelledby="permissionsAccordionButton"
+              >
+                <div class="accordion-body">
+                  <p class="text-muted small">
+                    These are department-level permissions — granting one
+                    applies to every form scoped to the selected department,
+                    not just one specific form.
+                  </p>
+                  <div id="permissions-section">
+                    {{ form.can_create_forms|as_crispy_field }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <div class="d-grid mt-4">
             <button type="submit" class="btn btn-primary btn-lg">
@@ -57,4 +81,56 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var ownerCheckbox = document.getElementById('id_is_department_owner');
+    var adminCheckbox = document.getElementById('id_is_administrator');
+    var permissionCheckboxes = document.querySelectorAll(
+        '#permissions-section input[type="checkbox"]'
+    );
+
+    var permissionsSection = document.getElementById('permissions-section');
+    var accordionButton = document.getElementById('permissionsAccordionButton');
+    var collapseEl = document.getElementById('permissionsCollapse');
+    var bsCollapse = collapseEl
+        ? bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false })
+        : null;
+
+    function updatePermissionsState() {
+        var grantedBy = [];
+        if (ownerCheckbox && ownerCheckbox.checked) grantedBy.push('Department owners');
+        if (adminCheckbox && adminCheckbox.checked) grantedBy.push('Administrators');
+        var redundant = grantedBy.length > 0;
+
+        permissionCheckboxes.forEach(function (checkbox) {
+            checkbox.disabled = redundant;
+            if (redundant) {
+                checkbox.checked = false;
+            }
+        });
+        if (permissionsSection) {
+            permissionsSection.classList.toggle('opacity-50', redundant);
+        }
+        if (accordionButton) {
+            accordionButton.textContent = redundant
+                ? grantedBy.join(' and ') + ' are automatically granted these permissions'
+                : 'Permissions';
+        }
+        if (bsCollapse) {
+            redundant ? bsCollapse.hide() : bsCollapse.show();
+        }
+    }
+
+    if (ownerCheckbox) {
+        ownerCheckbox.addEventListener('change', updatePermissionsState);
+    }
+    if (adminCheckbox) {
+        adminCheckbox.addEventListener('change', updatePermissionsState);
+    }
+    updatePermissionsState();
+});
+</script>
 {% endblock %}
