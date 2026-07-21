@@ -106,6 +106,41 @@ class DepartmentTests(TestCase):
         dept.remove_member(user)
         self.assertNotIn(dept.group, user.groups.all())
 
+    def test_remove_member_also_removes_ownership(self) -> None:
+        dept = DepartmentFactory(name="Engineering")
+        user = UserFactory()
+        dept.add_member(user)
+        dept.add_user_to_owners(user)
+        dept.remove_member(user)
+        self.assertFalse(dept.check_if_owned_by_user(user))
+
+    @parameterized.expand([(codename,) for codename in DepartmentPermission])
+    def test_remove_member_revokes_department_permissions_on_this_department(
+        self, codename: DepartmentPermission
+    ) -> None:
+        dept = DepartmentFactory(name="Engineering")
+        user = UserFactory()
+        dept.add_member(user)
+        assign_perm(codename, user, dept)
+        dept.remove_member(user)
+        self.assertFalse(user.has_perm(f"departments.{codename}", dept))
+
+    def test_remove_member_does_not_revoke_permissions_on_a_different_department(
+        self,
+    ) -> None:
+        dept = DepartmentFactory(name="Engineering")
+        other_dept = DepartmentFactory(name="Sales")
+        user = UserFactory()
+        dept.add_member(user)
+        other_dept.add_member(user)
+        assign_perm(DepartmentPermission.CAN_CREATE_FORMS, user, other_dept)
+        dept.remove_member(user)
+        self.assertTrue(
+            user.has_perm(
+                f"departments.{DepartmentPermission.CAN_CREATE_FORMS}", other_dept
+            )
+        )
+
     def test_add_user_to_owners_adds_user_to_the_departments_owners(self) -> None:
         dept = DepartmentFactory(name="Engineering")
         user = UserFactory()

@@ -8,6 +8,7 @@ from django.contrib.auth.models import Group
 from django.db import models
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
+from guardian.shortcuts import remove_perm
 from treebeard.mp_tree import MP_Node
 
 if TYPE_CHECKING:
@@ -96,7 +97,18 @@ class Department(MP_Node):
         self.group.user_set.add(user)
 
     def remove_member(self, user: User) -> None:
+        """Removes user from this department entirely: group membership,
+        ownership, and every DepartmentPermission they held on it.
+        Membership, ownership, and capability grants are all stored
+        independently — without this, a user moved to a different
+        department would keep stale ownership/grants on the one they
+        left, since removing one doesn't imply removing the others
+        unless done explicitly, here. Owning a department without being
+        a member of it isn't a state this project allows."""
         self.group.user_set.remove(user)
+        self.remove_user_from_owners(user)
+        for codename in DepartmentPermission:
+            remove_perm(f"departments.{codename}", user, self)
 
     def add_user_to_owners(self, user: User) -> None:
         self.owners.add(user)
@@ -115,8 +127,7 @@ class Department(MP_Node):
     def get_departments_owned_by_user(cls, user: User) -> models.QuerySet[Department]:
         """Departments this user directly owns, plus every descendant of
         each — owning a department implies owning its sub-departments
-        too, consistent with how department scoping works everywhere
-        else in this project (e.g. FormPermissions flattening)."""
+        too"""
         department_ids = set()
         for department in user.owned_departments.all():
             department_ids.add(department.pk)
