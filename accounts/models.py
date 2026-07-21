@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Any
 
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser, Group
 from django.core.validators import EmailValidator
 from django.db import models
@@ -16,6 +17,7 @@ class User(AbstractUser):
 
     if TYPE_CHECKING:
         owned_departments: RelatedManager[Department]
+        personal_group: "PersonalGroup"
 
     username = models.CharField(
         max_length=150,
@@ -37,13 +39,30 @@ class User(AbstractUser):
         self.username = self.email
         super().save(*args, **kwargs)
 
-    def get_or_create_personal_group(self) -> Group:
-        """Returns this user's personal Group, creating it (and adding this
-        user to it) on first use. On demand only — nothing creates this
-        automatically at signup. For granting individual, non-department
-        access to anything that only understands Group membership (e.g.
-        FormDefinition.admin_groups/reviewer_groups)."""
-        group, created = Group.objects.get_or_create(name=f"user-{self.pk}")
-        if created:
-            self.groups.add(group)
-        return group
+
+class PersonalGroup(Group):
+    """Workaround for base django-forms-workflows package, which has several views are gated by Group membership. The PersonalGroup object allows us
+    to make sure only specified users can view form submissions.
+
+    One-to-one with User; users should always be created via UserService.create_user() or via UserFactory.
+    """
+
+    # Workaround: Explicit manager redeclaration so django-stubs doesn't reject
+    # `owner` as an unexpected kwarg.
+    objects = models.Manager["PersonalGroup"]()  # type: ignore[assignment,misc]
+
+    # Named `owner`, not `user` — `user` clashes with the implicit reverse
+    # relation User.groups already creates on every Group
+    # (related_query_name="user", inherited down to PersonalGroup via
+    # multi-table inheritance). Django's system checks reject the clash
+    # (E006).
+    owner = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="personal_group",
+    )
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        if not self.name:
+            self.name = f"user-{self.owner_id}"
+        super().save(*args, **kwargs)
