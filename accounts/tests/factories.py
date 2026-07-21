@@ -1,6 +1,7 @@
 import factory
 from django.contrib.auth import get_user_model
 
+from accounts.models import PersonalGroup
 from permissions.services.admin_group_service import AdministratorGroupService
 
 User = get_user_model()
@@ -22,6 +23,16 @@ class UserFactory(factory.django.DjangoModelFactory[User]):
     def _create(cls, model_class, *args, **kwargs):
         manager = cls._get_manager(model_class)
         return manager.create_user(*args, **kwargs)
+
+    @factory.post_generation
+    def personal_group(self, create, extracted, **kwargs):
+        """Always runs, unconditionally — every real User is guaranteed a
+        PersonalGroup (see UserService.create_user, the production path
+        that provides the same guarantee outside of tests)."""
+        if not create:
+            return
+        group, _ = PersonalGroup.objects.get_or_create(owner=self)
+        self.groups.add(group)
 
     @factory.post_generation
     def is_administrator(self, create, extracted, **kwargs):

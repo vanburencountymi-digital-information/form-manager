@@ -1,9 +1,9 @@
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 
+from accounts.models import PersonalGroup
 from accounts.tests.factories import UserFactory
 
 User = get_user_model()
@@ -39,24 +39,24 @@ class UserSaveTests(TestCase):
         self.assertIn("email", ctx.exception.message_dict)
 
 
-class GetOrCreatePersonalGroupTests(TestCase):
-    def test_no_personal_group_exists_before_it_is_called(self) -> None:
+class PersonalGroupTests(TestCase):
+    def test_user_factory_creates_a_personal_group(self) -> None:
         user = UserFactory()
-        self.assertFalse(Group.objects.filter(name=f"user-{user.pk}").exists())
+        self.assertTrue(PersonalGroup.objects.filter(owner=user).exists())
 
-    def test_creates_a_group_named_after_the_users_pk(self) -> None:
+    def test_personal_group_is_named_after_the_users_pk(self) -> None:
         user = UserFactory()
-        group = user.get_or_create_personal_group()
-        self.assertEqual(group.name, f"user-{user.pk}")
+        self.assertEqual(user.personal_group.name, f"user-{user.pk}")
 
-    def test_adds_the_user_to_the_group(self) -> None:
+    def test_user_is_a_member_of_their_own_personal_group(self) -> None:
         user = UserFactory()
-        group = user.get_or_create_personal_group()
-        self.assertIn(group, user.groups.all())
+        self.assertIn(user.personal_group, user.groups.all())
 
-    def test_calling_it_again_returns_the_same_group(self) -> None:
+    def test_a_user_cannot_have_a_second_personal_group(self) -> None:
         user = UserFactory()
-        first = user.get_or_create_personal_group()
-        second = user.get_or_create_personal_group()
-        self.assertEqual(first.pk, second.pk)
-        self.assertEqual(Group.objects.filter(name=f"user-{user.pk}").count(), 1)
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            PersonalGroup.objects.create(owner=user)
+
+    def test_a_personal_group_requires_an_owner(self) -> None:
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            PersonalGroup.objects.create()

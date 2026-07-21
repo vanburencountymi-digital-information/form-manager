@@ -6,11 +6,9 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect, render
 
-from departments.models import DepartmentPermission
+from accounts.services.user_service import UserService
 from permissions.checks import can_manage_department_users
 from permissions.guards import assert_authenticated_user
-from permissions.services.admin_group_service import AdministratorGroupService
-from permissions.services.department_perm_service import DepartmentPermissionsService
 
 from .forms import InviteUserForm
 
@@ -27,18 +25,15 @@ def invite_user(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         form = InviteUserForm(request.POST, user=user)
         if form.is_valid():
-            form.instance.set_unusable_password()
-            new_user = form.save()
-            department = form.cleaned_data["department"]
-            department.add_member(new_user)
-            if form.cleaned_data.get("is_department_owner"):
-                department.add_user_to_owners(new_user)
-            if form.cleaned_data.get("can_create_forms"):
-                DepartmentPermissionsService.grant_permission(
-                    new_user, department, DepartmentPermission.CAN_CREATE_FORMS
-                )
-            if form.cleaned_data.get("is_administrator"):
-                AdministratorGroupService.add_administrator(new_user)
+            UserService.create_user(
+                email=form.cleaned_data["email"],
+                first_name=form.cleaned_data["first_name"],
+                last_name=form.cleaned_data["last_name"],
+                department=form.cleaned_data["department"],
+                is_department_owner=form.cleaned_data.get("is_department_owner", False),
+                can_create_forms=form.cleaned_data.get("can_create_forms", False),
+                is_administrator=form.cleaned_data.get("is_administrator", False),
+            )
             return redirect("invite_user")
     else:
         form = InviteUserForm(user=user)
