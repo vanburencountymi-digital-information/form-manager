@@ -21,17 +21,15 @@ class DepartmentHasChildrenError(Exception):
 
 
 class DepartmentPermission(StrEnum):
-    """Codenames for the six department-scoped guardian permissions on
-    Department (Meta.permissions, below). Only CAN_CREATE_FORMS is wired up
-    to a check/grant flow so far — the rest are declared here so the schema
-    lands once, but nothing outside this enum references them yet."""
+    """Codenames for the two department-scoped guardian permissions on
+    Department (Meta.permissions, below). Each covers create+edit+archive
+    together for its axis — there's no separate grant for "can create"
+    vs. "can edit" vs. "can archive"; the distinction never justified
+    three different capabilities in practice, since whoever can create a
+    department's forms is always meant to also edit/archive them."""
 
-    CAN_CREATE_FORMS = "can_create_forms"
-    CAN_EDIT_FORMS = "can_edit_forms"
-    CAN_ARCHIVE_FORMS = "can_archive_forms"
-    CAN_CREATE_WORKFLOWS = "can_create_workflows"
-    CAN_EDIT_WORKFLOWS = "can_edit_workflows"
-    CAN_ARCHIVE_WORKFLOWS = "can_archive_workflows"
+    CAN_MANAGE_FORMS = "can_manage_forms"
+    CAN_MANAGE_WORKFLOWS = "can_manage_workflows"
 
 
 class Department(MP_Node):
@@ -47,27 +45,15 @@ class Department(MP_Node):
     node_order_by = ["name"]
 
     class Meta:
+        # plain strings so changes don't break migrations
         permissions = [
             (
-                DepartmentPermission.CAN_CREATE_FORMS,
-                "Can create forms for this department",
-            ),
-            (DepartmentPermission.CAN_EDIT_FORMS, "Can edit this department's forms"),
-            (
-                DepartmentPermission.CAN_ARCHIVE_FORMS,
-                "Can archive this department's forms",
+                DepartmentPermission.CAN_MANAGE_FORMS.value,
+                "Can create, edit, and archive this department's forms",
             ),
             (
-                DepartmentPermission.CAN_CREATE_WORKFLOWS,
-                "Can create workflows for this department's forms",
-            ),
-            (
-                DepartmentPermission.CAN_EDIT_WORKFLOWS,
-                "Can edit this department's workflows",
-            ),
-            (
-                DepartmentPermission.CAN_ARCHIVE_WORKFLOWS,
-                "Can archive this department's workflows",
+                DepartmentPermission.CAN_MANAGE_WORKFLOWS.value,
+                "Can create, edit, and archive this department's workflows",
             ),
         ]
 

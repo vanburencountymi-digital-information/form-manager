@@ -20,17 +20,21 @@ class FormDefinitionPermissionsService:
     def has_editor_permission(
         cls, user: User, form_def: FormDefinition, codename: DepartmentPermission
     ) -> bool:
-        """True if user is a direct editor_users grant on form_def, or a
-        member of one of its editor_departments who also holds `codename`
-        on that department. Membership is a floor, same as
-        FormAccessService.can_create_form — an editor_department grant
-        without membership in it isn't enough."""
+        """True if user is a direct editor_users grant on form_def, or
+        holds `codename` (an explicit guardian grant) on one of its
+        editor_departments. Ownership is checked by the composite
+        (FormAccessService.can_manage_form) before this primitive is
+        ever called — mirrors how FormAccessService.can_create_form
+        checks ownership itself before calling
+        DepartmentPermissionsService.has_permission. No separate
+        membership check needed either: grant_permission already
+        requires membership at write-time, and Department.remove_member
+        revokes the grant if membership is later removed — so any
+        existing grant already implies current membership."""
         permissions = form_def.permissions
         if permissions.editor_users.filter(pk=user.pk).exists():
             return True
         for department in permissions.editor_departments.all():
-            if not department.check_if_user_is_member(user):
-                continue
             if DepartmentPermissionsService.has_permission(user, department, codename):
                 return True
         return False

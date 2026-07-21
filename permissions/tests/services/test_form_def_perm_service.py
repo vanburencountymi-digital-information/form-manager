@@ -15,7 +15,7 @@ class FormDefinitionPermissionsServiceHasEditorPermissionTests(TestCase):
         FormPermissionsFactory(form=form_def, editor_users=[user])
         self.assertTrue(
             FormDefinitionPermissionsService.has_editor_permission(
-                user, form_def, DepartmentPermission.CAN_EDIT_FORMS
+                user, form_def, DepartmentPermission.CAN_MANAGE_FORMS
             )
         )
 
@@ -24,13 +24,13 @@ class FormDefinitionPermissionsServiceHasEditorPermissionTests(TestCase):
         dept = DepartmentUserFactory(
             name="Engineering",
             with_user=user,
-            with_permissions=[(user, DepartmentPermission.CAN_EDIT_FORMS)],
+            with_permissions=[(user, DepartmentPermission.CAN_MANAGE_FORMS)],
         )
         form_def = FormDefinitionFactory()
         FormPermissionsFactory(form=form_def, editor_departments=[dept])
         self.assertTrue(
             FormDefinitionPermissionsService.has_editor_permission(
-                user, form_def, DepartmentPermission.CAN_EDIT_FORMS
+                user, form_def, DepartmentPermission.CAN_MANAGE_FORMS
             )
         )
 
@@ -41,7 +41,20 @@ class FormDefinitionPermissionsServiceHasEditorPermissionTests(TestCase):
         FormPermissionsFactory(form=form_def, editor_departments=[dept])
         self.assertTrue(
             FormDefinitionPermissionsService.has_editor_permission(
-                owner, form_def, DepartmentPermission.CAN_EDIT_FORMS
+                owner, form_def, DepartmentPermission.CAN_MANAGE_FORMS
+            )
+        )
+
+    def test_true_for_owner_of_an_ancestor_of_an_editor_department(self) -> None:
+        parent = DepartmentUserFactory(name="Engineering")
+        child = DepartmentUserFactory(name="Backend", parent=parent)
+        owner = UserFactory()
+        parent.add_user_to_owners(owner)
+        form_def = FormDefinitionFactory()
+        FormPermissionsFactory(form=form_def, editor_departments=[child])
+        self.assertTrue(
+            FormDefinitionPermissionsService.has_editor_permission(
+                owner, form_def, DepartmentPermission.CAN_MANAGE_FORMS
             )
         )
 
@@ -52,25 +65,17 @@ class FormDefinitionPermissionsServiceHasEditorPermissionTests(TestCase):
         FormPermissionsFactory(form=form_def, editor_departments=[dept])
         self.assertFalse(
             FormDefinitionPermissionsService.has_editor_permission(
-                user, form_def, DepartmentPermission.CAN_EDIT_FORMS
+                user, form_def, DepartmentPermission.CAN_MANAGE_FORMS
             )
         )
 
-    def test_false_for_capability_grant_without_membership(self) -> None:
-        # Membership is a floor, same as FormAccessService.can_create_form —
-        # an editor_department grant without membership in it isn't enough.
-        user = UserFactory()
-        dept = DepartmentUserFactory(
-            name="Engineering",
-            with_permissions=[(user, DepartmentPermission.CAN_EDIT_FORMS)],
-        )
-        form_def = FormDefinitionFactory()
-        FormPermissionsFactory(form=form_def, editor_departments=[dept])
-        self.assertFalse(
-            FormDefinitionPermissionsService.has_editor_permission(
-                user, form_def, DepartmentPermission.CAN_EDIT_FORMS
-            )
-        )
+    # No test for "capability grant without membership" here —
+    # DepartmentPermissionsService.grant_permission now enforces membership
+    # at write-time (raises UserNotAMemberError otherwise), and
+    # Department.remove_member revokes the grant if membership is later
+    # removed — so any existing grant already implies current membership.
+    # Constructing that state directly via guardian's assign_perm
+    # (bypassing the service) is an intentionally-unsupported shortcut.
 
     def test_false_for_unrelated_user(self) -> None:
         user = UserFactory()
@@ -78,21 +83,23 @@ class FormDefinitionPermissionsServiceHasEditorPermissionTests(TestCase):
         FormPermissionsFactory(form=form_def)
         self.assertFalse(
             FormDefinitionPermissionsService.has_editor_permission(
-                user, form_def, DepartmentPermission.CAN_EDIT_FORMS
+                user, form_def, DepartmentPermission.CAN_MANAGE_FORMS
             )
         )
 
     def test_editor_department_does_not_imply_a_different_capability(self) -> None:
+        # A grant on a different axis (workflows) shouldn't satisfy a
+        # forms-capability check.
         user = UserFactory()
         dept = DepartmentUserFactory(
             name="Engineering",
             with_user=user,
-            with_permissions=[(user, DepartmentPermission.CAN_CREATE_FORMS)],
+            with_permissions=[(user, DepartmentPermission.CAN_MANAGE_WORKFLOWS)],
         )
         form_def = FormDefinitionFactory()
         FormPermissionsFactory(form=form_def, editor_departments=[dept])
         self.assertFalse(
             FormDefinitionPermissionsService.has_editor_permission(
-                user, form_def, DepartmentPermission.CAN_EDIT_FORMS
+                user, form_def, DepartmentPermission.CAN_MANAGE_FORMS
             )
         )

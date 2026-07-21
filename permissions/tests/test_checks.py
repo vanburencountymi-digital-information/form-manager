@@ -45,66 +45,45 @@ class IsAdministratorTests(TestCase):
             checks.is_administrator(None)
 
 
-class CanCreateFormsTests(TestCase):
+class CanManageFormsTests(TestCase):
     def test_false_for_plain_user(self) -> None:
         user = UserFactory()
-        self.assertFalse(checks.can_create_forms(user))
+        self.assertFalse(checks.can_manage_forms(user))
 
     def test_true_for_department_owner(self) -> None:
         user = UserFactory()
         DepartmentFactory(name="Engineering").owners.add(user)
-        self.assertTrue(checks.can_create_forms(user))
+        self.assertTrue(checks.can_manage_forms(user))
 
     def test_true_for_administrator_with_no_owned_departments(self) -> None:
         user = UserFactory(is_administrator=True)
-        self.assertTrue(checks.can_create_forms(user))
+        self.assertTrue(checks.can_manage_forms(user))
 
     def test_true_for_explicit_department_level_grant_with_no_ownership(self) -> None:
         user = UserFactory()
         DepartmentUserFactory(
             name="Engineering",
-            with_permissions=[(user, DepartmentPermission.CAN_CREATE_FORMS)],
+            with_permissions=[(user, DepartmentPermission.CAN_MANAGE_FORMS)],
         )
-        self.assertTrue(checks.can_create_forms(user))
+        self.assertTrue(checks.can_manage_forms(user))
 
-    def test_false_for_a_department_level_grant_of_a_different_codename(self) -> None:
+    def test_false_for_a_workflow_level_grant(self) -> None:
+        # A grant on a different axis (workflows) shouldn't satisfy the
+        # forms check.
         user = UserFactory()
         DepartmentUserFactory(
             name="Engineering",
-            with_permissions=[(user, DepartmentPermission.CAN_EDIT_FORMS)],
+            with_permissions=[(user, DepartmentPermission.CAN_MANAGE_WORKFLOWS)],
         )
-        self.assertFalse(checks.can_create_forms(user))
+        self.assertFalse(checks.can_manage_forms(user))
 
     def test_raises_for_anonymous_user(self) -> None:
         with self.assertRaises(UnauthenticatedUserError):
-            checks.can_create_forms(AnonymousUser())
+            checks.can_manage_forms(AnonymousUser())
 
     def test_raises_for_none(self) -> None:
         with self.assertRaises(UnauthenticatedUserError):
-            checks.can_create_forms(None)
-
-
-class CanEditFormsTests(TestCase):
-    def test_false_for_plain_user(self) -> None:
-        user = UserFactory()
-        self.assertFalse(checks.can_edit_forms(user))
-
-    def test_true_for_department_owner(self) -> None:
-        user = UserFactory()
-        DepartmentFactory(name="Engineering").owners.add(user)
-        self.assertTrue(checks.can_edit_forms(user))
-
-    def test_true_for_administrator_with_no_owned_departments(self) -> None:
-        user = UserFactory(is_administrator=True)
-        self.assertTrue(checks.can_edit_forms(user))
-
-    def test_raises_for_anonymous_user(self) -> None:
-        with self.assertRaises(UnauthenticatedUserError):
-            checks.can_edit_forms(AnonymousUser())
-
-    def test_raises_for_none(self) -> None:
-        with self.assertRaises(UnauthenticatedUserError):
-            checks.can_edit_forms(None)
+            checks.can_manage_forms(None)
 
 
 class CanManageDepartmentUsersTests(TestCase):
@@ -128,7 +107,7 @@ class CanManageDepartmentUsersTests(TestCase):
         user = UserFactory()
         DepartmentUserFactory(
             name="Engineering",
-            with_permissions=[(user, DepartmentPermission.CAN_CREATE_FORMS)],
+            with_permissions=[(user, DepartmentPermission.CAN_MANAGE_FORMS)],
         )
         self.assertFalse(checks.can_manage_department_users(user))
 

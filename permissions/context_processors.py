@@ -3,9 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from permissions.checks import (
-    can_create_forms,
-    can_edit_forms,
     can_manage_department_users,
+    can_manage_forms,
     is_a_department_owner,
     is_administrator,
 )
@@ -22,14 +21,12 @@ def user_roles(request: HttpRequest) -> dict[str, bool]:
         return {
             "is_a_department_owner": False,
             "is_administrator": False,
-            "can_create_forms": False,
-            "can_edit_forms": False,
+            "can_manage_forms": False,
             "can_manage_department_users": False,
         }
     return {
         "is_a_department_owner": is_a_department_owner(user),
         "is_administrator": is_administrator(user),
-        "can_create_forms": can_create_forms(user),
-        "can_edit_forms": can_edit_forms(user),
+        "can_manage_forms": can_manage_forms(user),
         "can_manage_department_users": can_manage_department_users(user),
     }

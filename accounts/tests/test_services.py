@@ -47,19 +47,19 @@ class UserServiceCreateUserTests(TestCase):
         user = self._create(is_department_owner=True)
         self.assertTrue(self.department.check_if_owned_by_user(user))
 
-    def test_can_create_forms_grants_the_department_permission(self) -> None:
-        user = self._create(can_create_forms=True)
+    def test_can_manage_forms_grants_the_department_permission(self) -> None:
+        user = self._create(can_manage_forms=True)
         self.assertTrue(
             DepartmentPermissionsService.has_permission(
-                user, self.department, DepartmentPermission.CAN_CREATE_FORMS
+                user, self.department, DepartmentPermission.CAN_MANAGE_FORMS
             )
         )
 
-    def test_can_create_forms_false_by_default(self) -> None:
+    def test_can_manage_forms_false_by_default(self) -> None:
         user = self._create()
         self.assertFalse(
             DepartmentPermissionsService.has_permission(
-                user, self.department, DepartmentPermission.CAN_CREATE_FORMS
+                user, self.department, DepartmentPermission.CAN_MANAGE_FORMS
             )
         )
 

@@ -24,22 +24,19 @@ def is_administrator(user: User) -> bool:
 
 
 @require_authenticated_user
-def can_create_forms(user: User) -> bool:
-    """True if user can create at least one form somewhere"""
+def can_manage_forms(user: User) -> bool:
+    """True if user can create, edit, or archive at least one form
+    somewhere — one existential check for all three, since
+    DepartmentPermission.CAN_MANAGE_FORMS covers all three together
+    (there's no separate create/edit/archive grant to check individually
+    anymore)."""
     return (
         is_administrator(user)
         or is_a_department_owner(user)
         or DepartmentPermissionsService.has_permission_anywhere(
-            user, DepartmentPermission.CAN_CREATE_FORMS
+            user, DepartmentPermission.CAN_MANAGE_FORMS
         )
     )
-
-
-@require_authenticated_user
-def can_edit_forms(user: User) -> bool:
-    """True if user can edit at least one form somewhere"""
-    # TODO: update once there are department level permissions
-    return is_administrator(user) or is_a_department_owner(user)
 
 
 @require_authenticated_user
@@ -48,5 +45,5 @@ def can_manage_department_users(user: User) -> bool:
     department — administrator, or owns at least one department. User
     management is owners-only by design (see IMPLEMENTATION_PLAN.md), not
     an individually-grantable capability, so there's no explicit-guardian-
-    grant check here the way can_create_forms has one."""
+    grant check here the way can_manage_forms has one."""
     return is_administrator(user) or is_a_department_owner(user)

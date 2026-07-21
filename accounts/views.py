@@ -31,7 +31,7 @@ def invite_user(request: HttpRequest) -> HttpResponse:
                 last_name=form.cleaned_data["last_name"],
                 department=form.cleaned_data["department"],
                 is_department_owner=form.cleaned_data.get("is_department_owner", False),
-                can_create_forms=form.cleaned_data.get("can_create_forms", False),
+                can_manage_forms=form.cleaned_data.get("can_manage_forms", False),
                 is_administrator=form.cleaned_data.get("is_administrator", False),
             )
             return redirect("invite_user")

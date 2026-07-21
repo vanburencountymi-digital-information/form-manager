@@ -79,37 +79,39 @@ class DepartmentUserFactoryWithPermissionsTests(TestCase):
     def test_grants_the_given_permission_to_the_given_user(self) -> None:
         user = UserFactory()
         dept = DepartmentUserFactory(
-            with_permissions=[(user, DepartmentPermission.CAN_CREATE_FORMS)]
+            with_permissions=[(user, DepartmentPermission.CAN_MANAGE_FORMS)]
         )
         self.assertTrue(
-            user.has_perm(f"departments.{DepartmentPermission.CAN_CREATE_FORMS}", dept)
+            user.has_perm(f"departments.{DepartmentPermission.CAN_MANAGE_FORMS}", dept)
         )
 
     def test_does_not_grant_a_permission_not_listed(self) -> None:
         user = UserFactory()
         dept = DepartmentUserFactory(
-            with_permissions=[(user, DepartmentPermission.CAN_CREATE_FORMS)]
+            with_permissions=[(user, DepartmentPermission.CAN_MANAGE_FORMS)]
         )
         self.assertFalse(
-            user.has_perm(f"departments.{DepartmentPermission.CAN_EDIT_FORMS}", dept)
+            user.has_perm(
+                f"departments.{DepartmentPermission.CAN_MANAGE_WORKFLOWS}", dept
+            )
         )
 
     def test_does_not_grant_it_to_an_unrelated_user(self) -> None:
         user = UserFactory()
         other_user = UserFactory()
         dept = DepartmentUserFactory(
-            with_permissions=[(user, DepartmentPermission.CAN_CREATE_FORMS)]
+            with_permissions=[(user, DepartmentPermission.CAN_MANAGE_FORMS)]
         )
         self.assertFalse(
             other_user.has_perm(
-                f"departments.{DepartmentPermission.CAN_CREATE_FORMS}", dept
+                f"departments.{DepartmentPermission.CAN_MANAGE_FORMS}", dept
             )
         )
 
     def test_does_not_imply_membership(self) -> None:
         user = UserFactory()
         dept = DepartmentUserFactory(
-            with_permissions=[(user, DepartmentPermission.CAN_CREATE_FORMS)]
+            with_permissions=[(user, DepartmentPermission.CAN_MANAGE_FORMS)]
         )
         self.assertNotIn(dept.group, user.groups.all())
 
@@ -118,20 +120,22 @@ class DepartmentUserFactoryWithPermissionsTests(TestCase):
         bob = UserFactory()
         dept = DepartmentUserFactory(
             with_permissions=[
-                (alice, DepartmentPermission.CAN_CREATE_FORMS),
-                (bob, DepartmentPermission.CAN_EDIT_FORMS),
+                (alice, DepartmentPermission.CAN_MANAGE_FORMS),
+                (bob, DepartmentPermission.CAN_MANAGE_WORKFLOWS),
             ]
         )
         self.assertTrue(
-            alice.has_perm(f"departments.{DepartmentPermission.CAN_CREATE_FORMS}", dept)
+            alice.has_perm(f"departments.{DepartmentPermission.CAN_MANAGE_FORMS}", dept)
         )
         self.assertTrue(
-            bob.has_perm(f"departments.{DepartmentPermission.CAN_EDIT_FORMS}", dept)
+            bob.has_perm(
+                f"departments.{DepartmentPermission.CAN_MANAGE_WORKFLOWS}", dept
+            )
         )
 
     def test_omitted_by_default(self) -> None:
         user = UserFactory()
         dept = DepartmentUserFactory()
         self.assertFalse(
-            user.has_perm(f"departments.{DepartmentPermission.CAN_CREATE_FORMS}", dept)
+            user.has_perm(f"departments.{DepartmentPermission.CAN_MANAGE_FORMS}", dept)
         )

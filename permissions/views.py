@@ -7,7 +7,7 @@ from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
 from django_forms_workflows.models import FormDefinition
 
-from permissions.checks import can_create_forms
+from permissions.checks import can_manage_forms
 from permissions.forms import CreateFormPermissionsForm, EditFormPermissionsForm
 from permissions.guards import assert_authenticated_user
 from permissions.models import FormPermissions, apply_form_permissions
@@ -22,16 +22,9 @@ if TYPE_CHECKING:
 def create_form_permissions(request: HttpRequest) -> HttpResponse:
     """Creates a new FormDefinition + its FormPermissions row — the entry
     point for making a brand-new form, before the visual builder is ever
-    reached. Gated existentially at the view level (can this user create a
-    form *somewhere*); the departments they pick are separately restricted
-    to ones they qualify for via the form's own queryset. Re-checked below
-    as defense in depth — the creator needs can_create_form in at least
-    one selected department, not necessarily all of them: looping in an
-    additional department as a co-editor doesn't grant that department
-    anything new, since its members still need their own can_edit_forms
-    grant to actually use it."""
+    reached."""
     user = assert_authenticated_user(request.user)
-    if not can_create_forms(user):
+    if not can_manage_forms(user):
         raise PermissionDenied
     if request.method == "POST":
         form = CreateFormPermissionsForm(request.POST, user=user)
@@ -65,12 +58,10 @@ def create_form_permissions(request: HttpRequest) -> HttpResponse:
 @login_required
 def edit_form_permissions(request: HttpRequest, form_id: int) -> HttpResponse:
     """Edits an existing form's FormPermissions row — who can edit its
-    schema/workflow and who can view its submissions. Gated the same way
-    editing the form's schema is (FormAccessService.can_edit_form):
-    whoever can edit the form can also change who else can edit/view it."""
+    schema/workflow and who can view its submissions."""
     user = assert_authenticated_user(request.user)
     form_def = get_object_or_404(FormDefinition, id=form_id)
-    if not FormAccessService.can_edit_form(user, form_def):
+    if not FormAccessService.can_manage_form(user, form_def):
         raise PermissionDenied
     form_permissions = form_def.permissions
     if request.method == "POST":

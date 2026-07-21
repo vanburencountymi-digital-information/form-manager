@@ -25,7 +25,7 @@ class FormAccessServiceCanCreateFormTests(TestCase):
         dept = DepartmentUserFactory(
             name="Engineering",
             with_user=user,
-            with_permissions=[(user, DepartmentPermission.CAN_CREATE_FORMS)],
+            with_permissions=[(user, DepartmentPermission.CAN_MANAGE_FORMS)],
         )
         self.assertTrue(FormAccessService.can_create_form(user, dept))
 
@@ -40,23 +40,31 @@ class FormAccessServiceCanCreateFormTests(TestCase):
         DepartmentUserFactory(name="Sales", with_owner=owner)
         self.assertFalse(FormAccessService.can_create_form(owner, dept))
 
-    def test_false_for_explicit_grant_without_membership(self) -> None:
-        # Membership is a floor, not a bypass — an explicit guardian grant
-        # alone isn't enough if the user was never added to the department.
-        user = UserFactory()
-        dept = DepartmentUserFactory(
-            name="Engineering",
-            with_permissions=[(user, DepartmentPermission.CAN_CREATE_FORMS)],
-        )
-        self.assertFalse(FormAccessService.can_create_form(user, dept))
+    # No test for "explicit grant without membership" here —
+    # DepartmentPermissionsService.grant_permission now enforces membership
+    # at write-time (raises UserNotAMemberError otherwise, see
+    # test_department_perm_service.py), and Department.remove_member
+    # revokes the grant if membership is later removed — so any existing
+    # grant already implies current membership. Constructing that state
+    # directly via guardian's assign_perm (bypassing the service) is an
+    # intentionally-unsupported shortcut, not a state this method needs to
+    # defend against.
 
-    def test_false_for_owner_without_membership(self) -> None:
-        # add_user_to_owners alone doesn't add membership either — same
-        # floor applies to ownership as to explicit grants.
+    def test_true_for_owner_without_membership(self) -> None:
+        # Ownership bypasses membership entirely — same tier as
+        # is_administrator. add_user_to_owners alone doesn't add
+        # membership, and it doesn't need to.
         dept = DepartmentFactory(name="Engineering")
         owner = UserFactory()
         dept.add_user_to_owners(owner)
-        self.assertFalse(FormAccessService.can_create_form(owner, dept))
+        self.assertTrue(FormAccessService.can_create_form(owner, dept))
+
+    def test_true_for_owner_of_an_ancestor_department(self) -> None:
+        parent = DepartmentFactory(name="Engineering")
+        child = DepartmentFactory(name="Backend", parent=parent)
+        owner = UserFactory()
+        parent.add_user_to_owners(owner)
+        self.assertTrue(FormAccessService.can_create_form(owner, child))
 
     def test_false_for_anonymous_user_does_not_raise(self) -> None:
         dept = DepartmentFactory(name="Engineering")
@@ -67,45 +75,61 @@ class FormAccessServiceCanCreateFormTests(TestCase):
         self.assertFalse(FormAccessService.can_create_form(None, dept))
 
 
-class FormAccessServiceCanEditFormTests(TestCase):
+class FormAccessServiceCanManageFormTests(TestCase):
     def test_true_for_administrator_with_no_relationship_to_the_form(self) -> None:
         user = UserFactory(is_administrator=True)
         form_def = FormDefinitionFactory()
         FormPermissionsFactory(form=form_def)
-        self.assertTrue(FormAccessService.can_edit_form(user, form_def))
+        self.assertTrue(FormAccessService.can_manage_form(user, form_def))
 
     def test_true_for_direct_editor_user_grant(self) -> None:
         user = UserFactory()
         form_def = FormDefinitionFactory()
         FormPermissionsFactory(form=form_def, editor_users=[user])
-        self.assertTrue(FormAccessService.can_edit_form(user, form_def))
+        self.assertTrue(FormAccessService.can_manage_form(user, form_def))
 
-    def test_true_for_member_of_editor_department_with_can_edit_forms(self) -> None:
+    def test_true_for_member_of_editor_department_with_can_manage_forms(self) -> None:
         user = UserFactory()
         dept = DepartmentUserFactory(
             name="Engineering",
             with_user=user,
-            with_permissions=[(user, DepartmentPermission.CAN_EDIT_FORMS)],
+            with_permissions=[(user, DepartmentPermission.CAN_MANAGE_FORMS)],
         )
         form_def = FormDefinitionFactory()
         FormPermissionsFactory(form=form_def, editor_departments=[dept])
-        self.assertTrue(FormAccessService.can_edit_form(user, form_def))
+        self.assertTrue(FormAccessService.can_manage_form(user, form_def))
+
+    def test_true_for_owner_of_an_editor_department(self) -> None:
+        owner = UserFactory()
+        dept = DepartmentUserFactory(name="Engineering", with_owner=owner)
+        form_def = FormDefinitionFactory()
+        FormPermissionsFactory(form=form_def, editor_departments=[dept])
+        self.assertTrue(FormAccessService.can_manage_form(owner, form_def))
+
+    def test_true_for_owner_of_an_ancestor_of_an_editor_department(self) -> None:
+        parent = DepartmentUserFactory(name="Engineering")
+        child = DepartmentUserFactory(name="Backend", parent=parent)
+        owner = UserFactory()
+        parent.add_user_to_owners(owner)
+        form_def = FormDefinitionFactory()
+        FormPermissionsFactory(form=form_def, editor_departments=[child])
+        self.assertTrue(FormAccessService.can_manage_form(owner, form_def))
 
     def test_false_for_unrelated_user(self) -> None:
         user = UserFactory()
         form_def = FormDefinitionFactory()
         FormPermissionsFactory(form=form_def)
-        self.assertFalse(FormAccessService.can_edit_form(user, form_def))
+        self.assertFalse(FormAccessService.can_manage_form(user, form_def))
 
     def test_false_for_anonymous_user_does_not_raise(self) -> None:
         form_def = FormDefinitionFactory()
         FormPermissionsFactory(form=form_def)
-        self.assertFalse(FormAccessService.can_edit_form(AnonymousUser(), form_def))
+        self.assertFalse(FormAccessService.can_manage_form(AnonymousUser(), form_def))
 
     def test_false_for_none(self) -> None:
         form_def = FormDefinitionFactory()
         FormPermissionsFactory(form=form_def)
-        self.assertFalse(FormAccessService.can_edit_form(None, form_def))
+        self.assertFalse(FormAccessService.can_manage_form(None, form_def))
 
 
 class FormAccessServiceGetCreatableDepartmentsTests(TestCase):
@@ -127,7 +151,7 @@ class FormAccessServiceGetCreatableDepartmentsTests(TestCase):
         dept = DepartmentUserFactory(
             name="Engineering",
             with_user=user,
-            with_permissions=[(user, DepartmentPermission.CAN_CREATE_FORMS)],
+            with_permissions=[(user, DepartmentPermission.CAN_MANAGE_FORMS)],
         )
         self.assertIn(dept, FormAccessService.get_creatable_departments(user))
 

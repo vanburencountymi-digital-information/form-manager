@@ -99,7 +99,7 @@ class DepartmentPermissionsServiceHasPermissionAnywhereTests(TestCase):
         DepartmentUserFactory(name="Engineering", with_owner=owner)
         self.assertFalse(
             DepartmentPermissionsService.has_permission_anywhere(
-                owner, DepartmentPermission.CAN_CREATE_FORMS
+                owner, DepartmentPermission.CAN_MANAGE_FORMS
             )
         )
 
@@ -131,11 +131,11 @@ class DepartmentPermissionsServiceGrantPermissionTests(TestCase):
         dept = DepartmentUserFactory(name="Engineering", with_user=user)
         other_dept = DepartmentFactory(name="Sales")
         DepartmentPermissionsService.grant_permission(
-            user, dept, DepartmentPermission.CAN_CREATE_FORMS
+            user, dept, DepartmentPermission.CAN_MANAGE_FORMS
         )
         self.assertFalse(
             DepartmentPermissionsService.has_permission(
-                user, other_dept, DepartmentPermission.CAN_CREATE_FORMS
+                user, other_dept, DepartmentPermission.CAN_MANAGE_FORMS
             )
         )
 
@@ -164,10 +164,10 @@ class DepartmentPermissionsServiceGrantPermissionTests(TestCase):
         dept = DepartmentFactory(name="Engineering")
         with self.assertRaises(UserNotAMemberError):
             DepartmentPermissionsService.grant_permission(
-                user, dept, DepartmentPermission.CAN_CREATE_FORMS
+                user, dept, DepartmentPermission.CAN_MANAGE_FORMS
             )
         self.assertFalse(
             DepartmentPermissionsService.has_permission(
-                user, dept, DepartmentPermission.CAN_CREATE_FORMS
+                user, dept, DepartmentPermission.CAN_MANAGE_FORMS
             )
         )

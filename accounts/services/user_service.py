@@ -27,7 +27,7 @@ class UserService:
         last_name: str,
         department: Department,
         is_department_owner: bool = False,
-        can_create_forms: bool = False,
+        can_manage_forms: bool = False,
         is_administrator: bool = False,
     ) -> User:
         """
@@ -49,9 +49,9 @@ class UserService:
         if is_department_owner:
             department.add_user_to_owners(user)
 
-        if can_create_forms:
+        if can_manage_forms:
             DepartmentPermissionsService.grant_permission(
-                user, department, DepartmentPermission.CAN_CREATE_FORMS
+                user, department, DepartmentPermission.CAN_MANAGE_FORMS
             )
 
         if is_administrator:

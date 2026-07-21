@@ -30,9 +30,9 @@ class FormAccessService:
     immediately if check passes:
     - check if user exists and is authenticated
     - check if user is admin
-    - check if user has department-scoped permissions
-    - check if user has individually granted permissions on FormDef, if
-    applicable
+    - if relevant, check if user is owner of this department or a parent department.
+    - if relevant, check if user has department-scoped permissions.
+    - if relevant, check if user has permissions granted on FormDef
     """
 
     @classmethod
@@ -40,30 +40,39 @@ class FormAccessService:
     def can_create_form(
         cls, user: User | AnonymousUser | None, department: Department
     ) -> bool:
-        """True if user can create a new form, based on deparment-scoped
-        form permissions as set by administrators/department owners."""
+        """True if user is administrator, an owner of this department
+        or a parent department, or if they've been granted this
+        department level permission."""
         user = assert_authenticated_user(user)
         if AdministratorGroupService.is_administrator(user):
             return True
-        if not department.check_if_user_is_member(user):
-            return False
+        if department.check_if_owned_by_user(user):
+            return True
         return DepartmentPermissionsService.has_permission(
-            user, department, DepartmentPermission.CAN_CREATE_FORMS
+            user, department, DepartmentPermission.CAN_MANAGE_FORMS
         )
 
     @classmethod
     @return_false_if_user_not_authenticated
-    def can_edit_form(
+    def can_manage_form(
         cls, user: User | AnonymousUser | None, form_def: FormDefinition
     ) -> bool:
-        """True if user can edit form_def's schema — administrator bypass,
-        or a direct editor_users grant, or membership in an
-        editor_department that also holds can_edit_forms."""
+        """True if user can edit or archive form_def's schema — mirrors
+        can_create_form's shape: administrator bypass, then ownership
+        (including cascaded ownership of an ancestor) of one of
+        form_def's editor_departments, then the editor-grant check
+        (direct editor_users grant, or an explicit can_manage_forms
+        grant on one of editor_departments)."""
         user = assert_authenticated_user(user)
         if AdministratorGroupService.is_administrator(user):
             return True
+        if any(
+            department.check_if_owned_by_user(user)
+            for department in form_def.permissions.editor_departments.all()
+        ):
+            return True
         return FormDefinitionPermissionsService.has_editor_permission(
-            user, form_def, DepartmentPermission.CAN_EDIT_FORMS
+            user, form_def, DepartmentPermission.CAN_MANAGE_FORMS
         )
 
     @classmethod
@@ -80,7 +89,7 @@ class FormAccessService:
 
         granted_department_ids = get_objects_for_user(
             user,
-            f"departments.{DepartmentPermission.CAN_CREATE_FORMS}",
+            f"departments.{DepartmentPermission.CAN_MANAGE_FORMS}",
             klass=Department,
         ).values_list("pk", flat=True)
 
@@ -91,52 +100,13 @@ class FormAccessService:
         creatable_ids = set(owned_department_ids | granted_department_ids)
         return Department.objects.filter(pk__in=creatable_ids, is_archived=False)
 
-    # --- Everything below depends on FormDefinitionPermissionsService.
-    # has_editor_permission's shape being reusable across the remaining
-    # axes (it already is — see can_edit_form above), but the archive/
-    # workflow axes aren't wired up yet. Uncomment one method at a time,
-    # alongside its own tests and its own call sites.
-
-    # @classmethod
-    # @return_false_if_user_not_authenticated
-    # def can_archive_form(
-    #     cls, user: User | AnonymousUser | None, form_def: FormDefinition
-    # ) -> bool:
-    #     if AdministratorGroupService.is_administrator(user):
-    #         return True
-    #     return FormDefinitionPermissionsService.has_editor_permission(
-    #         user, form_def, DepartmentPermission.CAN_ARCHIVE_FORMS
-    #     )
-
-    # @classmethod
-    # @return_false_if_user_not_authenticated
-    # def can_create_workflow(
-    #     cls, user: User | AnonymousUser | None, form_def: FormDefinition
-    # ) -> bool:
-    #     if AdministratorGroupService.is_administrator(user):
-    #         return True
-    #     return FormDefinitionPermissionsService.has_editor_permission(
-    #         user, form_def, DepartmentPermission.CAN_CREATE_WORKFLOWS
-    #     )
-
-    # @classmethod
-    # @return_false_if_user_not_authenticated
-    # def can_edit_workflow(
-    #     cls, user: User | AnonymousUser | None, form_def: FormDefinition
-    # ) -> bool:
-    #     if AdministratorGroupService.is_administrator(user):
-    #         return True
-    #     return FormDefinitionPermissionsService.has_editor_permission(
-    #         user, form_def, DepartmentPermission.CAN_EDIT_WORKFLOWS
-    #     )
-
-    # @classmethod
-    # @return_false_if_user_not_authenticated
-    # def can_archive_workflow(
-    #     cls, user: User | AnonymousUser | None, form_def: FormDefinition
-    # ) -> bool:
-    #     if AdministratorGroupService.is_administrator(user):
-    #         return True
-    #     return FormDefinitionPermissionsService.has_editor_permission(
-    #         user, form_def, DepartmentPermission.CAN_ARCHIVE_WORKFLOWS
-    #     )
+    # No separate can_archive_form/can_create_form-for-existing-form —
+    # can_manage_form already covers editing and archiving both, since
+    # they share the same CAN_MANAGE_FORMS capability; a distinct method
+    # would just be a duplicate of the one above.
+    #
+    # Workflows aren't wired up yet, but will follow the identical shape
+    # once built — a single can_manage_workflow(user, form_def) checking
+    # DepartmentPermission.CAN_MANAGE_WORKFLOWS via
+    # FormDefinitionPermissionsService.has_editor_permission, covering
+    # create/edit/archive together, same reasoning as the forms axis.

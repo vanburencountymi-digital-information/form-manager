@@ -47,56 +47,30 @@ class UserRolesIsAdministratorTests(TestCase):
         self.assertFalse(user_roles(request)["is_administrator"])
 
 
-class UserRolesCanCreateFormsTests(TestCase):
+class UserRolesCanManageFormsTests(TestCase):
     def setUp(self) -> None:
         self.factory = RequestFactory()
 
     def test_false_for_plain_user(self) -> None:
         request = self.factory.get("/")
         request.user = UserFactory()
-        self.assertFalse(user_roles(request)["can_create_forms"])
+        self.assertFalse(user_roles(request)["can_manage_forms"])
 
     def test_true_for_department_owner(self) -> None:
         request = self.factory.get("/")
         request.user = UserFactory()
         DepartmentFactory(name="Engineering").owners.add(request.user)
-        self.assertTrue(user_roles(request)["can_create_forms"])
+        self.assertTrue(user_roles(request)["can_manage_forms"])
 
     def test_true_for_administrator(self) -> None:
         request = self.factory.get("/")
         request.user = UserFactory(is_administrator=True)
-        self.assertTrue(user_roles(request)["can_create_forms"])
+        self.assertTrue(user_roles(request)["can_manage_forms"])
 
     def test_false_for_anonymous_user_does_not_raise(self) -> None:
         request = self.factory.get("/")
         request.user = AnonymousUser()
-        self.assertFalse(user_roles(request)["can_create_forms"])
-
-
-class UserRolesCanEditFormsTests(TestCase):
-    def setUp(self) -> None:
-        self.factory = RequestFactory()
-
-    def test_false_for_plain_user(self) -> None:
-        request = self.factory.get("/")
-        request.user = UserFactory()
-        self.assertFalse(user_roles(request)["can_edit_forms"])
-
-    def test_true_for_department_owner(self) -> None:
-        request = self.factory.get("/")
-        request.user = UserFactory()
-        DepartmentFactory(name="Engineering").owners.add(request.user)
-        self.assertTrue(user_roles(request)["can_edit_forms"])
-
-    def test_true_for_administrator(self) -> None:
-        request = self.factory.get("/")
-        request.user = UserFactory(is_administrator=True)
-        self.assertTrue(user_roles(request)["can_edit_forms"])
-
-    def test_false_for_anonymous_user_does_not_raise(self) -> None:
-        request = self.factory.get("/")
-        request.user = AnonymousUser()
-        self.assertFalse(user_roles(request)["can_edit_forms"])
+        self.assertFalse(user_roles(request)["can_manage_forms"])
 
 
 class UserRolesCanManageDepartmentUsersTests(TestCase):
@@ -141,8 +115,7 @@ class UserRolesShortCircuitsForUnauthenticatedTests(TestCase):
             {
                 "is_a_department_owner": False,
                 "is_administrator": False,
-                "can_create_forms": False,
-                "can_edit_forms": False,
+                "can_manage_forms": False,
                 "can_manage_department_users": False,
             },
         )
@@ -154,8 +127,7 @@ class UserRolesShortCircuitsForUnauthenticatedTests(TestCase):
             {
                 "is_a_department_owner": False,
                 "is_administrator": False,
-                "can_create_forms": False,
-                "can_edit_forms": False,
+                "can_manage_forms": False,
                 "can_manage_department_users": False,
             },
         )

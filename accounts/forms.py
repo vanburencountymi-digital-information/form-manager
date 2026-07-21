@@ -76,7 +76,11 @@ class InviteUserForm(forms.ModelForm):
     is_administrator = forms.BooleanField(
         required=False, label="Grant administrator access"
     )
-    can_create_forms = forms.BooleanField(required=False, label="Can create forms")
+    can_manage_forms = forms.BooleanField(
+        required=False,
+        label="Can manage forms",
+        help_text="Create, edit, and archive this department's forms.",
+    )
 
     class Meta:
         model = User

@@ -133,11 +133,11 @@ class DepartmentTests(TestCase):
         user = UserFactory()
         dept.add_member(user)
         other_dept.add_member(user)
-        assign_perm(DepartmentPermission.CAN_CREATE_FORMS, user, other_dept)
+        assign_perm(DepartmentPermission.CAN_MANAGE_FORMS, user, other_dept)
         dept.remove_member(user)
         self.assertTrue(
             user.has_perm(
-                f"departments.{DepartmentPermission.CAN_CREATE_FORMS}", other_dept
+                f"departments.{DepartmentPermission.CAN_MANAGE_FORMS}", other_dept
             )
         )
 
