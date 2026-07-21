@@ -10,8 +10,9 @@ from django_forms_workflows.models import FormDefinition
 from permissions.checks import can_manage_forms
 from permissions.forms import CreateFormPermissionsForm, EditFormPermissionsForm
 from permissions.guards import assert_authenticated_user
-from permissions.models import FormPermissions, apply_form_permissions
+from permissions.models import FormPermissions
 from permissions.services.form_access_service import FormAccessService
+from permissions.services.form_permissions_service import FormPermissionsService
 from permissions.utils import generate_unique_slug
 
 if TYPE_CHECKING:
@@ -48,7 +49,7 @@ def create_form_permissions(request: HttpRequest) -> HttpResponse:
             form_permissions.submission_viewer_users.set(
                 form.cleaned_data["submission_viewer_users"]
             )
-            apply_form_permissions(form_permissions)
+            FormPermissionsService.apply_submission_viewer_permissions(form_permissions)
             return redirect("form_builder_edit", form_id=form_def.id)
     else:
         form = CreateFormPermissionsForm(user=user)
@@ -68,7 +69,7 @@ def edit_form_permissions(request: HttpRequest, form_id: int) -> HttpResponse:
         form = EditFormPermissionsForm(request.POST, instance=form_permissions)
         if form.is_valid():
             form.save()
-            apply_form_permissions(form_permissions)
+            FormPermissionsService.apply_submission_viewer_permissions(form_permissions)
             return redirect("edit_form_permissions", form_id=form_def.id)
     else:
         form = EditFormPermissionsForm(instance=form_permissions)

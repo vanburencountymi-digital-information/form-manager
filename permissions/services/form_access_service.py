@@ -12,7 +12,7 @@ from permissions.guards import (
 )
 from permissions.services.admin_group_service import AdministratorGroupService
 from permissions.services.department_perm_service import DepartmentPermissionsService
-from permissions.services.form_def_perm_service import FormDefinitionPermissionsService
+from permissions.services.form_permissions_service import FormPermissionsService
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser
@@ -71,9 +71,7 @@ class FormAccessService:
             for department in form_def.permissions.editor_departments.all()
         ):
             return True
-        return FormDefinitionPermissionsService.has_editor_permission(
-            user, form_def, DepartmentPermission.CAN_MANAGE_FORMS
-        )
+        return FormPermissionsService.has_editor_permission(user, form_def)
 
     @classmethod
     def get_creatable_departments(
@@ -105,8 +103,9 @@ class FormAccessService:
     # they share the same CAN_MANAGE_FORMS capability; a distinct method
     # would just be a duplicate of the one above.
     #
-    # Workflows aren't wired up yet, but will follow the identical shape
-    # once built — a single can_manage_workflow(user, form_def) checking
-    # DepartmentPermission.CAN_MANAGE_WORKFLOWS via
-    # FormDefinitionPermissionsService.has_editor_permission, covering
-    # create/edit/archive together, same reasoning as the forms axis.
+    # Workflows aren't wired up yet. FormPermissionsService.
+    # has_editor_permission is hardcoded to CAN_MANAGE_FORMS now (there's
+    # only one real caller today, so a codename parameter was premature) —
+    # a future can_manage_workflow(user, form_def) would need its own,
+    # separate primitive checking CAN_MANAGE_WORKFLOWS, not a reuse of
+    # this one with a different argument.

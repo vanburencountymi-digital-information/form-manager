@@ -61,24 +61,3 @@ class FormPermissions(models.Model):
             "— an explicit, minimum-necessary, per-person grant only."
         ),
     )
-
-
-def apply_form_permissions(form_permissions: FormPermissions) -> None:
-    """Recomputes form_permissions.form's reviewer_groups from its current
-    submission_viewer_users — the flattening step the package's own
-    native views (submission_detail, form_list, bulk_export_submissions)
-    rely on, since they only ever check group membership. Call this after
-    any change to submission_viewer_users; editor_departments/editor_users
-    need no equivalent call, since FormAccessService/
-    FormDefinitionPermissionsService read those live, at check-time.
-
-    reviewer_groups only, deliberately not admin_groups: both grant
-    identical read access everywhere submissions are viewed or exported,
-    but admin_groups additionally lets its members act on behalf of the
-    assignee in approve_submission (approve/reject/send back) — a write
-    capability submission_viewer_users must never carry. reviewer_groups
-    is explicitly read-only there; POST is rejected outright."""
-    personal_groups = {
-        user.personal_group for user in form_permissions.submission_viewer_users.all()
-    }
-    form_permissions.form.reviewer_groups.set(personal_groups)

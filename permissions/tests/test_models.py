@@ -2,9 +2,7 @@ from django.db import IntegrityError, transaction
 from django.test import TestCase
 
 from accounts.tests.factories import UserFactory
-from core.tests.factories import FormDefinitionFactory
 from departments.tests.factories import DepartmentFactory
-from permissions.models import apply_form_permissions
 from permissions.tests.factories import FormPermissionsFactory
 
 
@@ -56,49 +54,3 @@ class FormPermissionsTests(TestCase):
         fp = FormPermissionsFactory()
         with self.assertRaises(IntegrityError), transaction.atomic():
             FormPermissionsFactory(form=fp.form)
-
-
-class ApplyFormPermissionsTests(TestCase):
-    # Group membership is checked by pk, not instance equality, throughout
-    # this class — reviewer_groups/admin_groups are ManyToManyField(Group),
-    # so .all() returns plain Group rows; a PersonalGroup instance never
-    # equals a Group instance even for the same underlying row, since
-    # Django's model equality also checks _meta.concrete_model
-    # (multi-table inheritance).
-
-    def test_adds_each_viewer_users_personal_group_to_reviewer_groups(self) -> None:
-        alice = UserFactory()
-        bob = UserFactory()
-        fp = FormPermissionsFactory(submission_viewer_users=[alice, bob])
-        apply_form_permissions(fp)
-        reviewer_group_pks = fp.form.reviewer_groups.values_list("pk", flat=True)
-        self.assertIn(alice.personal_group.pk, reviewer_group_pks)
-        self.assertIn(bob.personal_group.pk, reviewer_group_pks)
-
-    def test_does_not_touch_admin_groups(self) -> None:
-        # reviewer_groups only — admin_groups additionally grants acting on
-        # behalf of an approval assignee, a write capability
-        # submission_viewer_users must never carry (see apply_form_permissions
-        # docstring).
-        alice = UserFactory()
-        fp = FormPermissionsFactory(submission_viewer_users=[alice])
-        apply_form_permissions(fp)
-        admin_group_pks = fp.form.admin_groups.values_list("pk", flat=True)
-        self.assertNotIn(alice.personal_group.pk, admin_group_pks)
-
-    def test_removing_a_viewer_user_and_reapplying_removes_their_group(self) -> None:
-        alice = UserFactory()
-        fp = FormPermissionsFactory(submission_viewer_users=[alice])
-        apply_form_permissions(fp)
-        fp.submission_viewer_users.remove(alice)
-        apply_form_permissions(fp)
-        reviewer_group_pks = fp.form.reviewer_groups.values_list("pk", flat=True)
-        self.assertNotIn(alice.personal_group.pk, reviewer_group_pks)
-
-    def test_no_viewer_users_clears_reviewer_groups(self) -> None:
-        form_def = FormDefinitionFactory()
-        alice = UserFactory()
-        form_def.reviewer_groups.add(alice.personal_group)
-        fp = FormPermissionsFactory(form=form_def)
-        apply_form_permissions(fp)
-        self.assertEqual(form_def.reviewer_groups.count(), 0)
