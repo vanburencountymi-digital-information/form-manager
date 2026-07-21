@@ -49,8 +49,13 @@ class PersonalGroupTests(TestCase):
         self.assertEqual(user.personal_group.name, f"user-{user.pk}")
 
     def test_user_is_a_member_of_their_own_personal_group(self) -> None:
+        # Compare by pk, not instance equality — user.groups.all() returns
+        # plain Group rows, and Django's model equality also checks
+        # _meta.concrete_model, so a PersonalGroup instance never equals a
+        # Group instance even when they share the same underlying row
+        # (multi-table inheritance).
         user = UserFactory()
-        self.assertIn(user.personal_group, user.groups.all())
+        self.assertTrue(user.groups.filter(pk=user.personal_group.pk).exists())
 
     def test_a_user_cannot_have_a_second_personal_group(self) -> None:
         user = UserFactory()

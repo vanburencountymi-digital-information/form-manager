@@ -6,7 +6,10 @@ from parameterized import parameterized
 from accounts.tests.factories import UserFactory
 from departments.models import DepartmentPermission
 from departments.tests.factories import DepartmentFactory, DepartmentUserFactory
-from permissions.services.department_perm_service import DepartmentPermissionsService
+from permissions.services.department_perm_service import (
+    DepartmentPermissionsService,
+    UserNotAMemberError,
+)
 
 
 class DepartmentPermissionsServiceHasPermissionTests(TestCase):
@@ -117,7 +120,7 @@ class DepartmentPermissionsServiceGrantPermissionTests(TestCase):
         self, codename: DepartmentPermission
     ) -> None:
         user = UserFactory()
-        dept = DepartmentFactory(name="Engineering")
+        dept = DepartmentUserFactory(name="Engineering", with_user=user)
         DepartmentPermissionsService.grant_permission(user, dept, codename)
         self.assertTrue(
             DepartmentPermissionsService.has_permission(user, dept, codename)
@@ -125,7 +128,7 @@ class DepartmentPermissionsServiceGrantPermissionTests(TestCase):
 
     def test_does_not_grant_the_permission_on_a_different_department(self) -> None:
         user = UserFactory()
-        dept = DepartmentFactory(name="Engineering")
+        dept = DepartmentUserFactory(name="Engineering", with_user=user)
         other_dept = DepartmentFactory(name="Sales")
         DepartmentPermissionsService.grant_permission(
             user, dept, DepartmentPermission.CAN_CREATE_FORMS
@@ -141,8 +144,30 @@ class DepartmentPermissionsServiceGrantPermissionTests(TestCase):
         self, granted: DepartmentPermission, checked: DepartmentPermission
     ) -> None:
         user = UserFactory()
-        dept = DepartmentFactory(name="Engineering")
+        dept = DepartmentUserFactory(name="Engineering", with_user=user)
         DepartmentPermissionsService.grant_permission(user, dept, granted)
         self.assertFalse(
             DepartmentPermissionsService.has_permission(user, dept, checked)
+        )
+
+    @parameterized.expand([(codename,) for codename in DepartmentPermission])
+    def test_raises_if_user_is_not_a_member(
+        self, codename: DepartmentPermission
+    ) -> None:
+        user = UserFactory()
+        dept = DepartmentFactory(name="Engineering")
+        with self.assertRaises(UserNotAMemberError):
+            DepartmentPermissionsService.grant_permission(user, dept, codename)
+
+    def test_raising_does_not_grant_the_permission(self) -> None:
+        user = UserFactory()
+        dept = DepartmentFactory(name="Engineering")
+        with self.assertRaises(UserNotAMemberError):
+            DepartmentPermissionsService.grant_permission(
+                user, dept, DepartmentPermission.CAN_CREATE_FORMS
+            )
+        self.assertFalse(
+            DepartmentPermissionsService.has_permission(
+                user, dept, DepartmentPermission.CAN_CREATE_FORMS
+            )
         )

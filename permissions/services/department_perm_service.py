@@ -11,6 +11,16 @@ if TYPE_CHECKING:
     from departments.models import DepartmentPermission
 
 
+class UserNotAMemberError(Exception):
+    """Raised by DepartmentPermissionsService.grant_permission when the
+    target user isn't a member of the department. A capability grant
+    without membership is a state this project never allows — enforced
+    once, here, at write-time, so read sites (e.g.
+    FormAccessService.get_creatable_departments) can trust that any
+    granted department implies membership, without re-checking it
+    defensively on every read."""
+
+
 class DepartmentPermissionsService:
     """Primitive class to check if User is owner or holds a DepartmentPermission codename
     on this specific department. Should only be called from higher level
@@ -42,7 +52,15 @@ class DepartmentPermissionsService:
         cls, user: User, department: Department, codename: DepartmentPermission
     ) -> None:
         """Explicitly grants `codename` to `user` on `department` via
-        guardian. Does not check whether the caller is allowed to grant it —
-        that's the caller's responsibility (e.g. the invite flow only ever
-        lets an inviter pick a department they already own or administer)."""
+        guardian. Requires user to already be a member of department —
+        raises UserNotAMemberError otherwise (add them as a member
+        first). Does not otherwise check whether the caller is allowed
+        to grant it — that's the caller's responsibility (e.g. the
+        invite flow only ever lets an inviter pick a department they
+        already own or administer)."""
+        if not department.check_if_user_is_member(user):
+            raise UserNotAMemberError(
+                f"{user} is not a member of {department}; add them as a "
+                "member before granting a department capability."
+            )
         assign_perm(f"departments.{codename}", user, department)

@@ -117,7 +117,15 @@ class Department(MP_Node):
         self.owners.remove(user)
 
     def check_if_owned_by_user(self, user: User) -> bool:
-        return user in self.owners.all()
+        """True if user owns this department directly, or owns any of its
+        ancestors — ownership cascades down the org tree, consistent with
+        get_departments_owned_by_user: owning a department implies owning
+        its sub-departments too."""
+        self_and_ancestor_pks = [
+            self.pk,
+            *self.get_ancestors().values_list("pk", flat=True),
+        ]
+        return user.owned_departments.filter(pk__in=self_and_ancestor_pks).exists()
 
     def check_if_user_is_member(self, user: User) -> bool:
         """True if user is a member of this department's group."""

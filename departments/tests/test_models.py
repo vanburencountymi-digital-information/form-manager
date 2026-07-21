@@ -228,13 +228,38 @@ class DepartmentTests(TestCase):
     def test_check_if_owned_by_user_false_for_owner_of_a_descendant_department(
         self,
     ) -> None:
-        # Unlike get_departments_owned_by_user, this checks direct ownership
-        # of this exact department only — owning a child doesn't count.
+        # Cascading only goes one direction — owning a child doesn't make
+        # you an owner of its parent.
         parent = DepartmentFactory(name="Engineering")
         child = DepartmentFactory(name="Backend", parent=parent)
         user = UserFactory()
         child.add_user_to_owners(user)
         self.assertFalse(parent.check_if_owned_by_user(user))
+
+    def test_check_if_owned_by_user_true_for_owner_of_a_direct_ancestor(self) -> None:
+        parent = DepartmentFactory(name="Engineering")
+        child = DepartmentFactory(name="Backend", parent=parent)
+        user = UserFactory()
+        parent.add_user_to_owners(user)
+        self.assertTrue(child.check_if_owned_by_user(user))
+
+    def test_check_if_owned_by_user_true_for_owner_of_a_grandparent(self) -> None:
+        grandparent = DepartmentFactory(name="Company")
+        parent = DepartmentFactory(name="Engineering", parent=grandparent)
+        child = DepartmentFactory(name="Backend", parent=parent)
+        user = UserFactory()
+        grandparent.add_user_to_owners(user)
+        self.assertTrue(child.check_if_owned_by_user(user))
+
+    def test_check_if_owned_by_user_false_for_owner_of_an_unrelated_department(
+        self,
+    ) -> None:
+        parent = DepartmentFactory(name="Engineering")
+        child = DepartmentFactory(name="Backend", parent=parent)
+        unrelated = DepartmentFactory(name="Sales")
+        user = UserFactory()
+        unrelated.add_user_to_owners(user)
+        self.assertFalse(child.check_if_owned_by_user(user))
 
     def test_get_departments_owned_by_user_includes_directly_owned_departments(
         self,

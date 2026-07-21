@@ -31,7 +31,9 @@ class UserServiceCreateUserTests(TestCase):
     def test_creates_a_personal_group_and_adds_membership(self) -> None:
         user = self._create()
         self.assertTrue(PersonalGroup.objects.filter(owner=user).exists())
-        self.assertIn(user.personal_group, user.groups.all())
+        # pk comparison, not instance equality — see the equivalent
+        # accounts.tests.test_models.PersonalGroupTests comment.
+        self.assertTrue(user.groups.filter(pk=user.personal_group.pk).exists())
 
     def test_adds_user_to_department(self) -> None:
         user = self._create()
