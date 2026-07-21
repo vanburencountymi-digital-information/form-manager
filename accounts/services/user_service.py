@@ -15,7 +15,6 @@ if TYPE_CHECKING:
 
 class UserService:
     """Manage Users, including creation:
-
     `create_user()`: grants all necessary permissions, departments, and groups atomically."""
 
     @classmethod
