@@ -1,0 +1,44 @@
+{% extends 'django_forms_workflows/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Create Form - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-md-8 col-lg-6">
+    <div class="card shadow-sm">
+      <div class="card-body p-4 p-md-5">
+        <div class="text-center mb-4">
+          <h2 class="fw-bold"><i class="bi bi-file-earmark-plus me-2"></i>Create Form</h2>
+          <p class="text-muted mb-0">
+            Set who can edit this form and who can view its submissions.
+            You'll build out the form's fields next.
+          </p>
+        </div>
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            {{ form.non_field_errors|join:" " }}
+          </div>
+        {% endif %}
+
+        <form method="post">
+          {% csrf_token %}
+          {{ form.name|as_crispy_field }}
+          {{ form.requires_login|as_crispy_field }}
+          {{ form.departments|as_crispy_field }}
+          {{ form.editor_users|as_crispy_field }}
+          {{ form.submission_viewer_users|as_crispy_field }}
+
+          <div class="d-grid mt-4">
+            <button type="submit" class="btn btn-primary btn-lg">
+              <i class="bi bi-arrow-right-circle me-2"></i>Continue to Builder
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

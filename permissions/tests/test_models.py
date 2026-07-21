@@ -59,14 +59,21 @@ class FormPermissionsTests(TestCase):
 
 
 class ApplyFormPermissionsTests(TestCase):
+    # Group membership is checked by pk, not instance equality, throughout
+    # this class — reviewer_groups/admin_groups are ManyToManyField(Group),
+    # so .all() returns plain Group rows; a PersonalGroup instance never
+    # equals a Group instance even for the same underlying row, since
+    # Django's model equality also checks _meta.concrete_model
+    # (multi-table inheritance).
+
     def test_adds_each_viewer_users_personal_group_to_reviewer_groups(self) -> None:
         alice = UserFactory()
         bob = UserFactory()
         fp = FormPermissionsFactory(submission_viewer_users=[alice, bob])
         apply_form_permissions(fp)
-        reviewer_groups = fp.form.reviewer_groups.all()
-        self.assertIn(alice.personal_group, reviewer_groups)
-        self.assertIn(bob.personal_group, reviewer_groups)
+        reviewer_group_pks = fp.form.reviewer_groups.values_list("pk", flat=True)
+        self.assertIn(alice.personal_group.pk, reviewer_group_pks)
+        self.assertIn(bob.personal_group.pk, reviewer_group_pks)
 
     def test_does_not_touch_admin_groups(self) -> None:
         # reviewer_groups only — admin_groups additionally grants acting on
@@ -76,7 +83,8 @@ class ApplyFormPermissionsTests(TestCase):
         alice = UserFactory()
         fp = FormPermissionsFactory(submission_viewer_users=[alice])
         apply_form_permissions(fp)
-        self.assertNotIn(alice.personal_group, fp.form.admin_groups.all())
+        admin_group_pks = fp.form.admin_groups.values_list("pk", flat=True)
+        self.assertNotIn(alice.personal_group.pk, admin_group_pks)
 
     def test_removing_a_viewer_user_and_reapplying_removes_their_group(self) -> None:
         alice = UserFactory()
@@ -84,7 +92,8 @@ class ApplyFormPermissionsTests(TestCase):
         apply_form_permissions(fp)
         fp.submission_viewer_users.remove(alice)
         apply_form_permissions(fp)
-        self.assertNotIn(alice.personal_group, fp.form.reviewer_groups.all())
+        reviewer_group_pks = fp.form.reviewer_groups.values_list("pk", flat=True)
+        self.assertNotIn(alice.personal_group.pk, reviewer_group_pks)
 
     def test_no_viewer_users_clears_reviewer_groups(self) -> None:
         form_def = FormDefinitionFactory()

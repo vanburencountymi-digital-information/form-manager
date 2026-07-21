@@ -25,6 +25,7 @@ from django.views.generic import RedirectView
 from accounts.forms import ActivationAwarePasswordResetForm
 from accounts.views import invite_user
 from core.views import landing_internal
+from permissions.views import create_form_permissions, edit_form_permissions
 
 urlpatterns = [
     path("", landing_internal, name="landing_internal"),
@@ -38,6 +39,15 @@ urlpatterns = [
     ),
     path("admin/", admin.site.urls),
     re_path(r"^_nested_admin/", include("nested_admin.urls")),
+    # Registered ahead of django_forms_workflows.urls below (same reason as
+    # password_reset further down) — "forms/" there is an include() that
+    # would otherwise swallow these first.
+    path("forms/create/", create_form_permissions, name="create_form_permissions"),
+    path(
+        "forms/<int:form_id>/permissions/",
+        edit_form_permissions,
+        name="edit_form_permissions",
+    ),
     path("forms/", include("django_forms_workflows.urls")),
     path("accounts/invite/", invite_user, name="invite_user"),
     # Registered ahead of django.contrib.auth.urls below so this one wins —

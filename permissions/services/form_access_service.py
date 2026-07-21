@@ -2,23 +2,24 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from departments.models import DepartmentPermission
+from guardian.shortcuts import get_objects_for_user
+
+from departments.models import Department, DepartmentPermission
 from permissions.guards import (
     assert_authenticated_user,
+    is_authenticated_user,
     return_false_if_user_not_authenticated,
 )
 from permissions.services.admin_group_service import AdministratorGroupService
 from permissions.services.department_perm_service import DepartmentPermissionsService
-
-# from permissions.services.form_def_perm_service import FormDefinitionPermissionsService
+from permissions.services.form_def_perm_service import FormDefinitionPermissionsService
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser
+    from django.db.models import QuerySet
+    from django_forms_workflows.models import FormDefinition
 
     from accounts.models import User
-    from departments.models import Department
-
-    # from django_forms_workflows.models import FormDefinition
 
 
 class FormAccessService:
@@ -50,22 +51,51 @@ class FormAccessService:
             user, department, DepartmentPermission.CAN_CREATE_FORMS
         )
 
-    # --- Everything below depends on FormPermissions.editor_users/
-    # viewer_users (not built yet) and FormDefinitionPermissionsService.
-    # has_editor_permission (not built yet). Commented out until those land
-    # — uncomment one method at a time, alongside its own tests and its own
-    # invite-flow wiring (see accounts/forms.py, accounts/views.py).
+    @classmethod
+    @return_false_if_user_not_authenticated
+    def can_edit_form(
+        cls, user: User | AnonymousUser | None, form_def: FormDefinition
+    ) -> bool:
+        """True if user can edit form_def's schema — administrator bypass,
+        or a direct editor_users grant, or membership in an
+        editor_department that also holds can_edit_forms."""
+        user = assert_authenticated_user(user)
+        if AdministratorGroupService.is_administrator(user):
+            return True
+        return FormDefinitionPermissionsService.has_editor_permission(
+            user, form_def, DepartmentPermission.CAN_EDIT_FORMS
+        )
 
-    # @classmethod
-    # @return_false_if_user_not_authenticated
-    # def can_edit_form(
-    #     cls, user: User | AnonymousUser | None, form_def: FormDefinition
-    # ) -> bool:
-    #     if AdministratorGroupService.is_administrator(user):
-    #         return True
-    #     return FormDefinitionPermissionsService.has_editor_permission(
-    #         user, form_def, DepartmentPermission.CAN_EDIT_FORMS
-    #     )
+    @classmethod
+    def get_creatable_departments(
+        cls, user: User | AnonymousUser | None
+    ) -> QuerySet[Department]:
+        """Departments this user could scope a brand new form to."""
+
+        if not is_authenticated_user(user):
+            return Department.objects.none()
+
+        if AdministratorGroupService.is_administrator(user):
+            return Department.objects.filter(is_archived=False)
+
+        granted_department_ids = get_objects_for_user(
+            user,
+            f"departments.{DepartmentPermission.CAN_CREATE_FORMS}",
+            klass=Department,
+        ).values_list("pk", flat=True)
+
+        owned_department_ids = Department.get_departments_owned_by_user(
+            user
+        ).values_list("pk", flat=True)
+
+        creatable_ids = set(owned_department_ids | granted_department_ids)
+        return Department.objects.filter(pk__in=creatable_ids, is_archived=False)
+
+    # --- Everything below depends on FormDefinitionPermissionsService.
+    # has_editor_permission's shape being reusable across the remaining
+    # axes (it already is — see can_edit_form above), but the archive/
+    # workflow axes aren't wired up yet. Uncomment one method at a time,
+    # alongside its own tests and its own call sites.
 
     # @classmethod
     # @return_false_if_user_not_authenticated
