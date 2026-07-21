@@ -3,9 +3,127 @@ from django.test import TestCase
 from accounts.tests.factories import UserFactory
 from core.tests.factories import FormDefinitionFactory
 from departments.models import DepartmentPermission
-from departments.tests.factories import DepartmentUserFactory
+from departments.tests.factories import DepartmentFactory, DepartmentUserFactory
+from permissions.models import FormPermissions
 from permissions.services.form_permissions_service import FormPermissionsService
 from permissions.tests.factories import FormPermissionsFactory
+
+
+class FormPermissionsServiceCreateFormPermissionsTests(TestCase):
+    def test_creates_a_form_permissions_row_for_the_form(self) -> None:
+        form_def = FormDefinitionFactory()
+        FormPermissionsService.create_form_permissions(
+            form_def=form_def,
+            editor_departments=[],
+            editor_users=[],
+            submission_viewer_users=[],
+        )
+        self.assertTrue(FormPermissions.objects.filter(form=form_def).exists())
+
+    def test_sets_editor_departments(self) -> None:
+        form_def = FormDefinitionFactory()
+        eng = DepartmentFactory(name="Engineering")
+        sales = DepartmentFactory(name="Sales")
+        fp = FormPermissionsService.create_form_permissions(
+            form_def=form_def,
+            editor_departments=[eng, sales],
+            editor_users=[],
+            submission_viewer_users=[],
+        )
+        self.assertIn(eng, fp.editor_departments.all())
+        self.assertIn(sales, fp.editor_departments.all())
+
+    def test_sets_editor_users(self) -> None:
+        form_def = FormDefinitionFactory()
+        alice = UserFactory()
+        fp = FormPermissionsService.create_form_permissions(
+            form_def=form_def,
+            editor_departments=[],
+            editor_users=[alice],
+            submission_viewer_users=[],
+        )
+        self.assertIn(alice, fp.editor_users.all())
+
+    def test_sets_submission_viewer_users(self) -> None:
+        form_def = FormDefinitionFactory()
+        alice = UserFactory()
+        fp = FormPermissionsService.create_form_permissions(
+            form_def=form_def,
+            editor_departments=[],
+            editor_users=[],
+            submission_viewer_users=[alice],
+        )
+        self.assertIn(alice, fp.submission_viewer_users.all())
+
+    def test_immediately_applies_submission_viewer_permissions(self) -> None:
+        # reviewer_groups should reflect submission_viewer_users right
+        # after creation, not just after a later, separate call.
+        form_def = FormDefinitionFactory()
+        alice = UserFactory()
+        FormPermissionsService.create_form_permissions(
+            form_def=form_def,
+            editor_departments=[],
+            editor_users=[],
+            submission_viewer_users=[alice],
+        )
+        reviewer_group_pks = form_def.reviewer_groups.values_list("pk", flat=True)
+        self.assertIn(alice.personal_group.pk, reviewer_group_pks)
+
+
+class FormPermissionsServiceUpdateFormPermissionsTests(TestCase):
+    def test_replaces_editor_departments(self) -> None:
+        old = DepartmentFactory(name="Sales")
+        new = DepartmentFactory(name="Engineering")
+        fp = FormPermissionsFactory(editor_departments=[old])
+        FormPermissionsService.update_form_permissions(
+            fp,
+            editor_departments=[new],
+            editor_users=[],
+            submission_viewer_users=[],
+        )
+        self.assertIn(new, fp.editor_departments.all())
+        self.assertNotIn(old, fp.editor_departments.all())
+
+    def test_replaces_editor_users(self) -> None:
+        alice = UserFactory()
+        bob = UserFactory()
+        fp = FormPermissionsFactory(editor_users=[alice])
+        FormPermissionsService.update_form_permissions(
+            fp,
+            editor_departments=[],
+            editor_users=[bob],
+            submission_viewer_users=[],
+        )
+        self.assertIn(bob, fp.editor_users.all())
+        self.assertNotIn(alice, fp.editor_users.all())
+
+    def test_replaces_submission_viewer_users(self) -> None:
+        alice = UserFactory()
+        bob = UserFactory()
+        fp = FormPermissionsFactory(submission_viewer_users=[alice])
+        FormPermissionsService.update_form_permissions(
+            fp,
+            editor_departments=[],
+            editor_users=[],
+            submission_viewer_users=[bob],
+        )
+        self.assertIn(bob, fp.submission_viewer_users.all())
+        self.assertNotIn(alice, fp.submission_viewer_users.all())
+
+    def test_reapplies_submission_viewer_permissions(self) -> None:
+        alice = UserFactory()
+        bob = UserFactory()
+        fp = FormPermissionsFactory(submission_viewer_users=[alice])
+        FormPermissionsService.apply_submission_viewer_permissions(fp)
+        FormPermissionsService.update_form_permissions(
+            fp,
+            editor_departments=[],
+            editor_users=[],
+            submission_viewer_users=[bob],
+        )
+        reviewer_group_pks = fp.form.reviewer_groups.values_list("pk", flat=True)
+        self.assertIn(bob.personal_group.pk, reviewer_group_pks)
+        self.assertNotIn(alice.personal_group.pk, reviewer_group_pks)
 
 
 class FormPermissionsServiceHasEditorPermissionTests(TestCase):

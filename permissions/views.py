@@ -10,7 +10,6 @@ from django_forms_workflows.models import FormDefinition
 from permissions.checks import can_manage_forms
 from permissions.forms import CreateFormPermissionsForm, EditFormPermissionsForm
 from permissions.guards import assert_authenticated_user
-from permissions.models import FormPermissions
 from permissions.services.form_access_service import FormAccessService
 from permissions.services.form_permissions_service import FormPermissionsService
 from permissions.utils import generate_unique_slug
@@ -43,13 +42,12 @@ def create_form_permissions(request: HttpRequest) -> HttpResponse:
                 requires_login=form.cleaned_data["requires_login"],
                 created_by=user,
             )
-            form_permissions = FormPermissions.objects.create(form=form_def)
-            form_permissions.editor_departments.set(departments)
-            form_permissions.editor_users.set(form.cleaned_data["editor_users"])
-            form_permissions.submission_viewer_users.set(
-                form.cleaned_data["submission_viewer_users"]
+            FormPermissionsService.create_form_permissions(
+                form_def=form_def,
+                editor_departments=departments,
+                editor_users=form.cleaned_data["editor_users"],
+                submission_viewer_users=form.cleaned_data["submission_viewer_users"],
             )
-            FormPermissionsService.apply_submission_viewer_permissions(form_permissions)
             return redirect("form_builder_edit", form_id=form_def.id)
     else:
         form = CreateFormPermissionsForm(user=user)
@@ -68,8 +66,12 @@ def edit_form_permissions(request: HttpRequest, form_id: int) -> HttpResponse:
     if request.method == "POST":
         form = EditFormPermissionsForm(request.POST, instance=form_permissions)
         if form.is_valid():
-            form.save()
-            FormPermissionsService.apply_submission_viewer_permissions(form_permissions)
+            FormPermissionsService.update_form_permissions(
+                form_permissions,
+                editor_departments=form.cleaned_data["editor_departments"],
+                editor_users=form.cleaned_data["editor_users"],
+                submission_viewer_users=form.cleaned_data["submission_viewer_users"],
+            )
             return redirect("edit_form_permissions", form_id=form_def.id)
     else:
         form = EditFormPermissionsForm(instance=form_permissions)
