@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     "treebeard",
     # non package
     "accounts",
+    "builder_overrides",
     "core",
     "departments",
     "permissions",
@@ -161,6 +162,17 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "static"
+
+# Checked by FileSystemFinder, which runs before AppDirectoriesFinder in the
+# default STATICFILES_FINDERS order — this is what lets a same-relative-path
+# file placed here override one shipped inside an app's own static/ dir
+# (e.g. django_forms_workflows/js/form-builder.js). There's no
+# APP_DIRS-style "project dir checked first" for static files the way
+# TEMPLATES["DIRS"] gives templates; this is the equivalent. Not
+# core/static/ itself — that's also picked up by AppDirectoriesFinder (via
+# INSTALLED_APPS, where django_forms_workflows sorts before core), which
+# would still resolve to the *package's* copy first.
+STATICFILES_DIRS = [BASE_DIR / "static_overrides"]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

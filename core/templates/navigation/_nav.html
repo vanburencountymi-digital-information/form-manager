@@ -8,7 +8,7 @@
             <ul class="dropdown-menu" aria-labelledby="formsDropdown">
                 {% if can_manage_forms %}
                 <li>
-                    <a class="dropdown-item" href="">
+                    <a class="dropdown-item" href="{% url 'create_form_permissions' %}">
                         <i class="bi bi-plus-circle me-2"></i>Create New Form
                     </a>
                 </li>
