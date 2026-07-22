@@ -494,37 +494,53 @@ class FormBuilder {
             });
         }
 
-        const isMultiStep = document.getElementById('formEnableMultiStep')?.checked;
-        if (isMultiStep) {
-            this.renderStepTabs();
-        } else {
-            this.renderCanvas();
-        }
+        this.renderCurrentCanvas();
         this.updatePreview();
     }
 
     pushUndo() {
-        this.undoStack.push(JSON.stringify(this.fields));
+        // Snapshot formSteps alongside fields — multi-step assignment is
+        // keyed by field_name, so undoing fields alone (the old behavior)
+        // could restore a field list that no longer matches which step
+        // each field belongs to.
+        this.undoStack.push(this.snapshotHistoryState());
         if (this.undoStack.length > this.maxUndoSteps) {
             this.undoStack.shift();
         }
         this.redoStack = [];
     }
 
+    snapshotHistoryState() {
+        return JSON.stringify({ fields: this.fields, formSteps: this.formSteps });
+    }
+
+    restoreHistoryState(snapshot) {
+        const { fields, formSteps } = JSON.parse(snapshot);
+        this.fields = fields;
+        this.formSteps = formSteps;
+        this.renderCurrentCanvas();
+        this.updatePreview();
+    }
+
+    renderCurrentCanvas() {
+        const isMultiStep = document.getElementById('formEnableMultiStep')?.checked;
+        if (isMultiStep) {
+            this.renderStepTabs();
+        } else {
+            this.renderCanvas();
+        }
+    }
+
     undo() {
         if (this.undoStack.length === 0) return;
-        this.redoStack.push(JSON.stringify(this.fields));
-        this.fields = JSON.parse(this.undoStack.pop());
-        this.renderCanvas();
-        this.updatePreview();
+        this.redoStack.push(this.snapshotHistoryState());
+        this.restoreHistoryState(this.undoStack.pop());
     }
 
     redo() {
         if (this.redoStack.length === 0) return;
-        this.undoStack.push(JSON.stringify(this.fields));
-        this.fields = JSON.parse(this.redoStack.pop());
-        this.renderCanvas();
-        this.updatePreview();
+        this.undoStack.push(this.snapshotHistoryState());
+        this.restoreHistoryState(this.redoStack.pop());
     }
     
     getDefaultLabel(fieldType) {
@@ -679,6 +695,7 @@ class FormBuilder {
         // Build property form
         const form = this.buildPropertyForm(field);
         document.getElementById('fieldPropertyForm').innerHTML = form;
+        this.initializePropertyFormTabs(field);
 
         // Show modal
         const modalElement = document.getElementById('fieldPropertyModal');
@@ -700,7 +717,28 @@ class FormBuilder {
 
         modal.show();
     }
-    
+
+    initializePropertyFormTabs(field) {
+        // Wires up the interactive bits of the Conditional Logic, Validation,
+        // and Dependencies tabs. These used to be <script> tags embedded in
+        // the HTML strings returned by buildConditionalLogicTab/
+        // buildValidationTab/buildDependenciesTab — but script tags inserted
+        // via innerHTML (as done above) are inert by spec and never execute,
+        // so none of this ever actually ran: the "Enable Conditional Logic"
+        // toggle didn't show/hide its own section, and none of the three
+        // tabs' interactive rule-builder lists ever initialized.
+        const enableConditional = document.getElementById('propEnableConditional');
+        const conditionalRulesContainer = document.getElementById('conditionalRulesContainer');
+        if (enableConditional && conditionalRulesContainer) {
+            enableConditional.addEventListener('change', (e) => {
+                conditionalRulesContainer.style.display = e.target.checked ? 'block' : 'none';
+            });
+        }
+        this.initializeConditionsList(field.conditional_rules?.conditions || []);
+        this.initializeValidationRulesList(field.validation_rules || []);
+        this.initializeDependenciesList(field.field_dependencies || []);
+    }
+
     buildPropertyForm(field) {
         const prefillOptions = this.config.prefillSources.map(source =>
             `<option value="${source.id}" ${field.prefill_source_id === source.id ? 'selected' : ''}>
@@ -964,16 +1002,6 @@ class FormBuilder {
                     </div>
                 </div>
             </div>
-
-            <script>
-                // Toggle conditional rules container
-                document.getElementById('propEnableConditional').addEventListener('change', function(e) {
-                    document.getElementById('conditionalRulesContainer').style.display = e.target.checked ? 'block' : 'none';
-                });
-
-                // Initialize conditions list
-                window.formBuilder.initializeConditionsList(${JSON.stringify(field.conditional_rules?.conditions || [])});
-            </script>
         `;
     }
 
@@ -1008,11 +1036,6 @@ class FormBuilder {
                     <small class="text-muted">You can edit the JSON directly for advanced configurations</small>
                 </div>
             </div>
-
-            <script>
-                // Initialize validation rules list
-                window.formBuilder.initializeValidationRulesList(${JSON.stringify(field.validation_rules || [])});
-            </script>
         `;
     }
 
@@ -1053,11 +1076,6 @@ class FormBuilder {
                     <small class="text-muted">You can edit the JSON directly for advanced configurations</small>
                 </div>
             </div>
-
-            <script>
-                // Initialize dependencies list
-                window.formBuilder.initializeDependenciesList(${JSON.stringify(field.field_dependencies || [])});
-            </script>
         `;
     }
 
@@ -1382,11 +1400,13 @@ class FormBuilder {
             e.preventDefault();
             canvas.classList.remove('drag-over');
 
-            const fieldType = e.dataTransfer.getData('fieldType');
-            if (fieldType) {
-                // Field dropped from palette
-                this.handleFieldDroppedToStep(fieldType, stepIndex);
-            }
+            // Field insertion is handled entirely by Sortable's onAdd above
+            // (setupStepCanvasSortable). This handler previously *also* tried
+            // to add a field here via e.dataTransfer.getData('fieldType'),
+            // but nothing in this file ever calls setData('fieldType', ...),
+            // so that branch could never actually fire — dead code left over
+            // from the same duplicated-handler pattern that caused a live
+            // double-add bug in the single-step canvas (see setupCanvas).
         });
     }
 
@@ -1394,6 +1414,11 @@ class FormBuilder {
         // Create a new field when dropped from palette
         const fieldConfig = this.fieldTypes.find(ft => ft.type === fieldType);
         if (!fieldConfig) return;
+
+        // Mirrors addFieldAtPosition's own pushUndo() — without this, adding
+        // a field via the multi-step canvas wasn't undoable at all, unlike
+        // the single-step canvas.
+        this.pushUndo();
 
         const fieldName = this.getDefaultName(fieldType);
         const newField = {
@@ -1675,6 +1700,7 @@ class FormBuilder {
         if (this.currentFieldIndex === null) return;
 
         const field = this.fields[this.currentFieldIndex];
+        const previousFieldName = field.field_name;
 
         // Update basic field properties
         field.field_label = document.getElementById('propFieldLabel').value;
@@ -1820,11 +1846,26 @@ class FormBuilder {
         // Mark field as saved (no longer new)
         this.isNewField = false;
 
+        // Keep step assignment in sync — formSteps tracks fields by name,
+        // so a rename here would otherwise leave the field's step entry
+        // pointing at a name that no longer exists, making it silently
+        // disappear from the multi-step UI despite still being in
+        // this.fields (see IMPLEMENTATION_PLAN.md).
+        if (field.field_name !== previousFieldName && this.formSteps) {
+            this.formSteps.forEach(step => {
+                if (!step.fields) return;
+                const idx = step.fields.indexOf(previousFieldName);
+                if (idx !== -1) {
+                    step.fields[idx] = field.field_name;
+                }
+            });
+        }
+
         // Close modal
         bootstrap.Modal.getInstance(document.getElementById('fieldPropertyModal')).hide();
 
         // Re-render
-        this.renderCanvas();
+        this.renderCurrentCanvas();
         this.updatePreview();
     }
 
@@ -1857,12 +1898,7 @@ class FormBuilder {
         this.updateFieldOrders();
 
         // Re-render appropriate canvas
-        const isMultiStep = document.getElementById('formEnableMultiStep')?.checked;
-        if (isMultiStep) {
-            this.renderStepTabs();
-        } else {
-            this.renderCanvas();
-        }
+        this.renderCurrentCanvas();
 
         this.updatePreview();
     }
@@ -2107,12 +2143,7 @@ class FormBuilder {
                 });
 
                 // Re-render to update the UI with new IDs
-                const isMultiStep = document.getElementById('formEnableMultiStep')?.checked;
-                if (isMultiStep) {
-                    this.renderStepTabs();
-                } else {
-                    this.renderCanvas();
-                }
+                this.renderCurrentCanvas();
             }
 
             document.getElementById('saveStatus').textContent = 'Saved successfully';
