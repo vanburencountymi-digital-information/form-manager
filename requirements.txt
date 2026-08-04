@@ -16,11 +16,52 @@ distlib==0.4.3
 Django==6.0.5
 django-countries==9.0.0
 django-crispy-forms==2.6
-# Pinned to a commit, not a release — our form_builder_save refactor PR
-# (opensensor/django-forms-workflows) merged upstream but hasn't shipped in
-# a PyPI release yet. Switch back to a normal version pin once it has (see
-# IMPLEMENTATION_PLAN.md).
-django-forms-workflows @ git+https://github.com/opensensor/django-forms-workflows.git@11e5c361115091f41f44a7d649079a184fc659f0
+# Pinned to a commit, not a release. PR #11 (form-builder-api.js extraction)
+# has since merged upstream at opensensor/django-forms-workflows@a023570 —
+# but as a SQUASH merge, not a merge commit: our old pin (564473a) is NOT an
+# ancestor of a023570. The "PRs here merge via a real merge commit, so the
+# branch-tip SHA survives merge unchanged" assumption this pin previously
+# relied on is confirmed WRONG as of #11; don't rely on it again. The squash
+# also picked up fixes for two of the three Copilot XSS findings flagged
+# against #11 (`category`/`usage_count` now escaped in form-builder-api.js);
+# `template.id` and `error.message` interpolation are still unescaped.
+#
+# Update: PR #12 merged upstream at opensensor/django-forms-workflows@524cef6
+# — via a REAL merge commit this time, not a squash. Confirmed via
+# `git merge-base --is-ancestor 5c6deb5 upstream/main`: our old pin (5c6deb5,
+# PR #12's fork-branch tip) IS an ancestor of upstream/main today, so the
+# pin itself never went stale/invalid — the "squash breaks the SHA"
+# assumption from #11 was never universal, just true for that one PR. Still
+# treat it as case-by-case per pin, not assumed either way, next time.
+#
+# Now pinned to the tip of PR #16 (opensensor/django-forms-workflows#16,
+# "Extract Canvas/Drag-Drop Controller into separate module") on the
+# ViolanteCodes fork it was opened from — not yet merged/approved upstream.
+# Same explicit-call caveat as before: do NOT assume this SHA survives #16's
+# eventual merge unchanged; re-diff and re-pin once it merges. Overrides
+# rebuilt against this pin:
+#   - form-builder.js: down to its slim ~130-line orchestrator (constructor,
+#     store proxies, init(), setupEventListeners()) now that canvas/drag-drop
+#     moved out too. Same 1-hunk Cancel-button-redirect customization
+#     carried over unchanged (the line it patches wasn't touched by #16).
+#   - form-builder-canvas.js: new upstream file (field palette, canvas/
+#     drag-drop, field CRUD, multi-step canvas, context menu) — no override
+#     needed, resolves straight to the installed package, same as
+#     form-builder-store.js/form-builder-history.js.
+#   - form-builder-property-editor.js: picked up an unrelated, already-
+#     merged upstream fix (PR #13, "Fix duplicate data-index values in
+#     property editor add/save handlers") between our old pin and this one.
+#     The existing 2-hunk customization (previousFieldName capture +
+#     formSteps-rename-sync, and the multi-step-aware re-render branch in
+#     saveFieldProperties) still applies cleanly at its same logical spot,
+#     just shifted a few lines by #13's fix — rebuilt fresh against the new
+#     pin rather than patched forward, verified byte-for-byte identical in
+#     diff shape to the pre-#16 override.
+#   - form-builder-api.js: untouched between the old and new pin — same
+#     3-hunk customization, unchanged. Still-open, not-ours-to-fix XSS
+#     findings from #11 (`template.id`/`error.message` unescaped) confirmed
+#     still present at this pin too.
+django-forms-workflows @ git+https://github.com/ViolanteCodes/django-forms-workflows.git@150caaa18ba5f492a33949c16181149437ababcb
 django-guardian==3.3.2
 django-localflavor==5.0
 django-nested-admin==4.1.6
